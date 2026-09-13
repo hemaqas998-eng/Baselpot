@@ -1,0 +1,582 @@
+{
+  "version": 2,
+  "lastSaved": 1789134787592,
+  "settings": {
+    "isRunning": true,
+    "scanIntervalSeconds": 30,
+    "minConfidencePct": 75,
+    "minRiskReward": 1.5,
+    "autoTradePaper": true,
+    "riskPerTradePct": 1.5,
+    "accountBalance": 0,
+    "maxDailyLossPct": 15.0,
+    "dailyProfitTargetMultiplier": 10,
+    "dailyProfitTargetUSD": 0,
+    "telegramEnabled": false,
+    "telegramBotToken": "8901121014:AAEzFJzTfvjVA139VLXggNF8E30gv4FrpyY",
+    "telegramChatId": "@basselte",
+    "discordWebhookUrl": "",
+    "discordEnabled": false,
+    "dataSource": "HYBRID",
+    "trailingStopEnabled": true,
+    "trailingStopActivationPct": 50,
+    "soundAlerts": true,
+    "economicNewsFilter": true,
+    "activeSymbols": [
+      "DXY",
+      "US10Y",
+      "VIX",
+      "US30",
+      "US100",
+      "US500",
+      "GER40",
+      "UK100",
+      "JPN225",
+      "XAU/USD",
+      "XAG/USD",
+      "USOIL",
+      "UKOIL",
+      "EUR/USD",
+      "GBP/USD",
+      "USD/JPY",
+      "USD/CHF",
+      "AUD/USD",
+      "USD/CAD",
+      "NZD/USD",
+      "GBP/JPY",
+      "EUR/JPY",
+      "AUD/JPY",
+      "CAD/JPY",
+      "NZD/JPY",
+      "CHF/JPY",
+      "GBP/AUD",
+      "GBP/NZD",
+      "EUR/AUD",
+      "EUR/CAD",
+      "AUD/CAD",
+      "EUR/NZD",
+      "AUD/NZD",
+      "EUR/GBP",
+      "GBP/CAD",
+      "USD/MXN",
+      "USD/SGD",
+      "USD/ZAR",
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT"
+    ],
+    "activeTimeframes": [
+      "5m",
+      "15m",
+      "1h",
+      "4h"
+    ],
+    "language": "ar",
+    "preventOppositeSignals": true,
+    "signalCooldownMinutes": 20,
+    "preferredTradeStyle": "ALL",
+    "autoCloseEnabled": true,
+    "atrTpMultiplier": 2.5,
+    "atrSlMultiplier": 1.5,
+    "autoCloseOnOppositeSignal": true,
+    "atrDynamicTrailingEnabled": true,
+    "atrTrailingMultiplier": 1.5,
+    "volatilitySpikeFilterEnabled": true,
+    "volatilitySpikeThreshold": 2.4,
+    "earlyInvalidationAlerts": true,
+    "earlyInvalidationAutoDeRisk": true,
+    "intermarketFilterEnabled": true,
+    "kellySizingEnabled": true,
+    "fractionalKellyScale": 0.35,
+    "volatilitySizingScaler": true,
+    "sessionKillzoneFilter": true,
+    "blockDeadZoneTrades": true,
+    "correlationGuardEnabled": true,
+    "maxCurrencyExposurePct": 3.5,
+    "maxPortfolioRiskPct": 6,
+    "smartLimitOrdersEnabled": true,
+    "signalTtlMinutes": 30,
+    "scalpSwingDualMode": "HYBRID_AUTO",
+    "marketClosureGuardEnabled": true,
+    "preWeekendDeRiskEnabled": true,
+    "dailyRolloverGuardEnabled": true,
+    "mt5Config": {
+      "server": "Exness-Real",
+      "login": "",
+      "password": "",
+      "isConnected": false,
+      "autoExecute": false,
+      "lotSize": 0.01
+    }
+  },
+  "paperTrades": [],
+  "signals": [
+    {
+      "id": "SIG-XAUUSD-15m-3091",
+      "symbol": "XAU/USD",
+      "timeframe": "15m",
+      "direction": "LONG",
+      "tradeType": "SCALP",
+      "tradeTypeExplanation": "صفقة مضاربة سريعة (Scalp ⚡): استهداف حركة خاطفة واقتناص نقاط قريبة مع وقف خسارة محكم",
+      "targetHoldingHorizon": "15m - 2h",
+      "timeframeCascade": {
+        "htf": {
+          "timeframe": "4h",
+          "bias": "BULLISH",
+          "keyLevel": 4352.14,
+          "structure": "ORDER_BLOCK",
+          "descArabic": "اتجاه صاعد كلي (4H Macro): السعر أعلى متوسط EMA50 مع تدفق سيولة شرائي وتمركز فوق مستوى الدعم $4352.14"
+        },
+        "itf": {
+          "timeframe": "1h",
+          "bias": "BEARISH",
+          "structureShift": "CHoCH",
+          "descArabic": "تحول ديناميكي (1H CHoCH): تغير في سلوك السعر واختبار مستويات السيولة اللحظية"
+        },
+        "ltf": {
+          "timeframe": "5m",
+          "bias": "BEARISH",
+          "trigger": "ORDER_BLOCK_RETEST",
+          "entryConfirmation": false,
+          "descArabic": "انتظار اكتمال شمعة التأكيد (5m Validation): السعر يعيد اختبار مستويات السيولة اللحظية"
+        },
+        "cascadeAlignmentScore": 85,
+        "alignmentStatus": "STRONG_CASCADE",
+        "cascadeSummaryArabic": "تتابع فريمات قوي: توافق الفريم الكلي والوسيط مع تأكيد نقطة القناص اللحظية"
+      },
+      "pattern": {
+        "name": "Ascending Triangle Breakout",
+        "type": "BREAKOUT",
+        "timeframe": "15m",
+        "confidence": 91,
+        "description": "Multi-day higher-low structure pressing through $2685 resistance ceiling."
+      },
+      "confidence": 91,
+      "entryPrice": 4382.9,
+      "stopLoss": 4353.87,
+      "takeProfit1": 4435.15,
+      "takeProfit2": 4469.98,
+      "takeProfit3": 4513.52,
+      "riskRewardRatio": 1.8,
+      "confluenceScore": 86,
+      "confluenceFactors": [
+        "🌊 تتابع الفريمات: تتابع فريمات قوي: توافق الفريم الكلي والوسيط مع تأكيد نقطة القناص اللحظية (85%)",
+        "Bullish 20/50 EMA Order Alignment",
+        "RSI at 78.4 confirming bullish momentum",
+        "Key Structural Support Confluence Zone",
+        "MACD Momentum Expansion (NONE)",
+        "ATR Volatility Expansion Confirmation"
+      ],
+      "status": "ACTIVE",
+      "createdAt": 1789134787586,
+      "expiresAt": 1789163587586,
+      "currentPrice": 4382.9,
+      "pnlPct": 0.2,
+      "newsImpact": {
+        "hasImpact": true,
+        "highestImpact": "HIGH",
+        "closestEventTitle": "US Core Consumer Price Index (MoM & YoY)",
+        "closestEventCurrency": "USD",
+        "scheduledTime": 1789136287580,
+        "minutesUntilEvent": 25,
+        "volatilityRisk": "EXTREME",
+        "invalidationWarning": "US Core Consumer Price Index (MoM & YoY) scheduled in 25m for USD. Medium volatility anticipated.",
+        "actionableGuidance": "Monitor price action around 12:30 UTC.",
+        "forecast": "0.3%",
+        "previous": "0.3%"
+      },
+      "aiAnalysis": {
+        "summary": "High-conviction LONG trade setup on XAU/USD following Ascending Triangle Breakout. Price action demonstrates strong institutional absorption.",
+        "marketBias": "STRONG_BUY",
+        "rationales": [
+          "Multi-timeframe momentum is strictly aligned with the 15m breakout structure.",
+          "Stop-loss placement at 4353.87 is safely protected behind institutional liquidity nodes.",
+          "Clean path to Take Profit 1 at 4435.15 with low overhead resistance."
+        ],
+        "invalidationTrigger": "H1 Candle closure below 4353.87.",
+        "riskRecommendation": "Allocate 1.5% portfolio equity ($0.75 risk on $50 base account) with trailing stop trigger once TP1 is achieved toward 10x target ($500.00).",
+        "keyLevelsNote": "Immediate target at 4435.15 (+1.19%), extension target at 4469.98.",
+        "expectedMoveTimeframe": "2h - 6h",
+        "fearGreedConfluence": "Greed sentiment supports LONG trend acceleration."
+      },
+      "telegramSent": true,
+      "discordSent": true
+    },
+    {
+      "id": "SIG-BTCUSDT-15m-1508",
+      "symbol": "BTC/USDT",
+      "timeframe": "15m",
+      "direction": "LONG",
+      "tradeType": "SCALP",
+      "tradeTypeExplanation": "صفقة مضاربة سريعة (Scalp ⚡): استهداف حركة خاطفة واقتناص نقاط قريبة مع وقف خسارة محكم",
+      "targetHoldingHorizon": "15m - 2h",
+      "timeframeCascade": {
+        "htf": {
+          "timeframe": "4h",
+          "bias": "BEARISH",
+          "keyLevel": 77910.25,
+          "structure": "ORDER_BLOCK",
+          "descArabic": "اتجاه هابط كلي (4H Macro): السعر أسفل متوسط EMA50 مع ضغط بيعي وتمركز أسفل المقاومة $77910.25"
+        },
+        "itf": {
+          "timeframe": "1h",
+          "bias": "BULLISH",
+          "structureShift": "CHoCH",
+          "descArabic": "تحول ديناميكي (1H CHoCH): تغير في سلوك السعر واختبار مستويات السيولة اللحظية"
+        },
+        "ltf": {
+          "timeframe": "5m",
+          "bias": "BEARISH",
+          "trigger": "ORDER_BLOCK_RETEST",
+          "entryConfirmation": false,
+          "descArabic": "انتظار اكتمال شمعة التأكيد (5m Validation): السعر يعيد اختبار مستويات السيولة اللحظية"
+        },
+        "cascadeAlignmentScore": 70,
+        "alignmentStatus": "PARTIAL_CASCADE",
+        "cascadeSummaryArabic": "تتابع فريمات جزئي: تباين مؤقت بين الفريمات يتطلب تأكيداً مضاعفاً"
+      },
+      "pattern": {
+        "name": "Bullish Fair Value Gap (FVG) Tap",
+        "type": "FVG",
+        "timeframe": "15m",
+        "confidence": 93,
+        "description": "Institutional buying volume reacted off $88,200 discount imbalance."
+      },
+      "confidence": 93,
+      "entryPrice": 76790,
+      "stopLoss": 75718.69,
+      "takeProfit1": 78718.36,
+      "takeProfit2": 80003.93,
+      "takeProfit3": 81610.89,
+      "riskRewardRatio": 1.8,
+      "confluenceScore": 88,
+      "confluenceFactors": [
+        "🌊 تتابع الفريمات: تتابع فريمات جزئي: تباين مؤقت بين الفريمات يتطلب تأكيداً مضاعفاً (70%)",
+        "Bullish 20/50 EMA Order Alignment",
+        "RSI at 48.4 confirming bullish momentum",
+        "Key Structural Support Confluence Zone",
+        "MACD Momentum Expansion (NONE)",
+        "ATR Volatility Expansion Confirmation"
+      ],
+      "status": "TRIGGERED",
+      "createdAt": 1789132987586,
+      "expiresAt": 1789163587586,
+      "currentPrice": 76790,
+      "pnlPct": 0.85,
+      "newsImpact": {
+        "hasImpact": true,
+        "highestImpact": "HIGH",
+        "closestEventTitle": "US Core Consumer Price Index (MoM & YoY)",
+        "closestEventCurrency": "USD",
+        "scheduledTime": 1789136287580,
+        "minutesUntilEvent": 25,
+        "volatilityRisk": "EXTREME",
+        "invalidationWarning": "US Core Consumer Price Index (MoM & YoY) scheduled in 25m for USD. Medium volatility anticipated.",
+        "actionableGuidance": "Monitor price action around 12:30 UTC.",
+        "forecast": "0.3%",
+        "previous": "0.3%"
+      },
+      "aiAnalysis": {
+        "summary": "High-conviction LONG trade setup on BTC/USDT following Bullish Fair Value Gap (FVG) Tap. Price action demonstrates strong institutional absorption.",
+        "marketBias": "STRONG_BUY",
+        "rationales": [
+          "Multi-timeframe momentum is strictly aligned with the 15m breakout structure.",
+          "Stop-loss placement at 75718.69 is safely protected behind institutional liquidity nodes.",
+          "Clean path to Take Profit 1 at 78718.36 with low overhead resistance."
+        ],
+        "invalidationTrigger": "H1 Candle closure below 75718.69.",
+        "riskRecommendation": "Allocate 1.5% portfolio equity ($0.75 risk on $50 base account) with trailing stop trigger once TP1 is achieved toward 10x target ($500.00).",
+        "keyLevelsNote": "Immediate target at 78718.36 (+2.51%), extension target at 80003.93.",
+        "expectedMoveTimeframe": "2h - 6h",
+        "fearGreedConfluence": "Greed sentiment supports LONG trend acceleration."
+      },
+      "telegramSent": false,
+      "discordSent": false
+    },
+    {
+      "id": "SIG-EURUSD-15m-9977",
+      "symbol": "EUR/USD",
+      "timeframe": "15m",
+      "direction": "SHORT",
+      "tradeType": "SCALP",
+      "tradeTypeExplanation": "صفقة مضاربة سريعة (Scalp ⚡): استهداف حركة خاطفة واقتناص نقاط قريبة مع وقف خسارة محكم",
+      "targetHoldingHorizon": "15m - 2h",
+      "timeframeCascade": {
+        "htf": {
+          "timeframe": "4h",
+          "bias": "BEARISH",
+          "keyLevel": 1.1672,
+          "structure": "ORDER_BLOCK",
+          "descArabic": "اتجاه هابط كلي (4H Macro): السعر أسفل متوسط EMA50 مع ضغط بيعي وتمركز أسفل المقاومة $1.1672"
+        },
+        "itf": {
+          "timeframe": "1h",
+          "bias": "BEARISH",
+          "structureShift": "MSS_CONFIRMED",
+          "descArabic": "تأكيد هيكلي (1H/15m MSS): اختراق هيكل السوق وتطابق الزخم مع الاتجاه الكلي مع تشكل فجوة قيمة عادلة FVG"
+        },
+        "ltf": {
+          "timeframe": "5m",
+          "bias": "BEARISH",
+          "trigger": "LIQUIDITY_PURGE",
+          "entryConfirmation": true,
+          "descArabic": "إشارة دخول قناص (5m Sniper Trigger): ارتداد سريع من بلوك الأوامر واكتمال فحص الشمعة الانعكاسية بنجاح"
+        },
+        "cascadeAlignmentScore": 99,
+        "alignmentStatus": "PERFECT_CASCADE",
+        "cascadeSummaryArabic": "تتابع فريمات مثالي (4H Macro + 1H Structure + 5m Sniper): توافق كامل في الاتجاه وتدفق السيولة ونقطة الدخول"
+      },
+      "pattern": {
+        "name": "Bearish Order Block Rejection",
+        "type": "CONTINUATION",
+        "timeframe": "15m",
+        "confidence": 86,
+        "description": "Supply test at 1.0865 liquidity pool with bearish engulfing continuation."
+      },
+      "confidence": 86,
+      "entryPrice": 1.1634,
+      "stopLoss": 1.1667,
+      "takeProfit1": 1.1575,
+      "takeProfit2": 1.1535,
+      "takeProfit3": 1.1485,
+      "riskRewardRatio": 1.8,
+      "confluenceScore": 81,
+      "confluenceFactors": [
+        "🌊 تتابع الفريمات: تتابع فريمات مثالي (4H Macro + 1H Structure + 5m Sniper): توافق كامل في الاتجاه وتدفق السيولة ونقطة الدخول (99%)",
+        "Bearish 20/50 EMA Order Alignment",
+        "RSI at 41.9 confirming bearish momentum",
+        "Key Structural Resistance Confluence Zone",
+        "MACD Momentum Expansion (NONE)",
+        "ATR Volatility Expansion Confirmation"
+      ],
+      "status": "ACTIVE",
+      "createdAt": 1789131187586,
+      "expiresAt": 1789163587586,
+      "currentPrice": 1.1634,
+      "pnlPct": 0.2,
+      "newsImpact": {
+        "hasImpact": true,
+        "highestImpact": "HIGH",
+        "closestEventTitle": "US Core Consumer Price Index (MoM & YoY)",
+        "closestEventCurrency": "USD",
+        "scheduledTime": 1789136287580,
+        "minutesUntilEvent": 25,
+        "volatilityRisk": "EXTREME",
+        "invalidationWarning": "US Core Consumer Price Index (MoM & YoY) scheduled in 25m for USD. Medium volatility anticipated.",
+        "actionableGuidance": "Monitor price action around 12:30 UTC.",
+        "forecast": "0.3%",
+        "previous": "0.3%"
+      },
+      "aiAnalysis": {
+        "summary": "High-conviction SHORT trade setup on EUR/USD following Bearish Order Block Rejection. Price action demonstrates strong institutional absorption.",
+        "marketBias": "STRONG_SELL",
+        "rationales": [
+          "Multi-timeframe momentum is strictly aligned with the 15m breakout structure.",
+          "Stop-loss placement at 1.1667 is safely protected behind institutional liquidity nodes.",
+          "Clean path to Take Profit 1 at 1.1575 with low overhead resistance."
+        ],
+        "invalidationTrigger": "H1 Candle closure above 1.1667.",
+        "riskRecommendation": "Allocate 1.5% portfolio equity ($0.75 risk on $50 base account) with trailing stop trigger once TP1 is achieved toward 10x target ($500.00).",
+        "keyLevelsNote": "Immediate target at 1.1575 (+0.51%), extension target at 1.1535.",
+        "expectedMoveTimeframe": "2h - 6h",
+        "fearGreedConfluence": "Greed sentiment supports SHORT trend acceleration."
+      },
+      "telegramSent": false,
+      "discordSent": false
+    },
+    {
+      "id": "SIG-GBPUSD-15m-9822",
+      "symbol": "GBP/USD",
+      "timeframe": "15m",
+      "direction": "LONG",
+      "tradeType": "SCALP",
+      "tradeTypeExplanation": "صفقة مضاربة سريعة (Scalp ⚡): استهداف حركة خاطفة واقتناص نقاط قريبة مع وقف خسارة محكم",
+      "targetHoldingHorizon": "15m - 2h",
+      "timeframeCascade": {
+        "htf": {
+          "timeframe": "4h",
+          "bias": "NEUTRAL",
+          "keyLevel": 1.3601,
+          "structure": "ORDER_BLOCK",
+          "descArabic": "تذبذب عرضي كلي (4H Equilibrium): السعر في منطقة توازن واختبار نطاق $1.3601"
+        },
+        "itf": {
+          "timeframe": "1h",
+          "bias": "BULLISH",
+          "structureShift": "CHoCH",
+          "descArabic": "تحول ديناميكي (1H CHoCH): تغير في سلوك السعر واختبار مستويات السيولة اللحظية"
+        },
+        "ltf": {
+          "timeframe": "5m",
+          "bias": "BULLISH",
+          "trigger": "ORDER_BLOCK_RETEST",
+          "entryConfirmation": true,
+          "descArabic": "إشارة دخول قناص (5m Sniper Trigger): ارتداد سريع من بلوك الأوامر واكتمال فحص الشمعة الانعكاسية بنجاح"
+        },
+        "cascadeAlignmentScore": 70,
+        "alignmentStatus": "PARTIAL_CASCADE",
+        "cascadeSummaryArabic": "تتابع فريمات جزئي: تباين مؤقت بين الفريمات يتطلب تأكيداً مضاعفاً"
+      },
+      "pattern": {
+        "name": "Bullish Liquidity Sweep & Retest",
+        "type": "LIQUIDITY_SWEEP",
+        "timeframe": "15m",
+        "confidence": 89,
+        "description": "GBP/USD reacted sharply off 1.2940 institutional demand pool with strong momentum."
+      },
+      "confidence": 89,
+      "entryPrice": 1.3549,
+      "stopLoss": 1.3512,
+      "takeProfit1": 1.3617,
+      "takeProfit2": 1.3661,
+      "takeProfit3": 1.3718,
+      "riskRewardRatio": 1.8,
+      "confluenceScore": 84,
+      "confluenceFactors": [
+        "🌊 تتابع الفريمات: تتابع فريمات جزئي: تباين مؤقت بين الفريمات يتطلب تأكيداً مضاعفاً (70%)",
+        "Bullish 20/50 EMA Order Alignment",
+        "RSI at 80.0 confirming bullish momentum",
+        "Key Structural Support Confluence Zone",
+        "MACD Momentum Expansion (NONE)",
+        "ATR Volatility Expansion Confirmation"
+      ],
+      "status": "ACTIVE",
+      "createdAt": 1789129387586,
+      "expiresAt": 1789163587586,
+      "currentPrice": 1.3549,
+      "pnlPct": 0.2,
+      "newsImpact": {
+        "hasImpact": true,
+        "highestImpact": "HIGH",
+        "closestEventTitle": "US Core Consumer Price Index (MoM & YoY)",
+        "closestEventCurrency": "USD",
+        "scheduledTime": 1789136287580,
+        "minutesUntilEvent": 25,
+        "volatilityRisk": "EXTREME",
+        "invalidationWarning": "US Core Consumer Price Index (MoM & YoY) scheduled in 25m for USD. Medium volatility anticipated.",
+        "actionableGuidance": "Monitor price action around 12:30 UTC.",
+        "forecast": "0.3%",
+        "previous": "0.3%"
+      },
+      "aiAnalysis": {
+        "summary": "High-conviction LONG trade setup on GBP/USD following Bullish Liquidity Sweep & Retest. Price action demonstrates strong institutional absorption.",
+        "marketBias": "STRONG_BUY",
+        "rationales": [
+          "Multi-timeframe momentum is strictly aligned with the 15m breakout structure.",
+          "Stop-loss placement at 1.3512 is safely protected behind institutional liquidity nodes.",
+          "Clean path to Take Profit 1 at 1.3617 with low overhead resistance."
+        ],
+        "invalidationTrigger": "H1 Candle closure below 1.3512.",
+        "riskRecommendation": "Allocate 1.5% portfolio equity ($0.75 risk on $50 base account) with trailing stop trigger once TP1 is achieved toward 10x target ($500.00).",
+        "keyLevelsNote": "Immediate target at 1.3617 (+0.50%), extension target at 1.3661.",
+        "expectedMoveTimeframe": "2h - 6h",
+        "fearGreedConfluence": "Greed sentiment supports LONG trend acceleration."
+      },
+      "telegramSent": false,
+      "discordSent": false
+    },
+    {
+      "id": "SIG-USOIL-15m-6022",
+      "symbol": "USOIL",
+      "timeframe": "15m",
+      "direction": "LONG",
+      "tradeType": "SCALP",
+      "tradeTypeExplanation": "صفقة مضاربة سريعة (Scalp ⚡): استهداف حركة خاطفة واقتناص نقاط قريبة مع وقف خسارة محكم",
+      "targetHoldingHorizon": "15m - 2h",
+      "timeframeCascade": {
+        "htf": {
+          "timeframe": "4h",
+          "bias": "BULLISH",
+          "keyLevel": 87.62,
+          "structure": "ORDER_BLOCK",
+          "descArabic": "اتجاه صاعد كلي (4H Macro): السعر أعلى متوسط EMA50 مع تدفق سيولة شرائي وتمركز فوق مستوى الدعم $87.62"
+        },
+        "itf": {
+          "timeframe": "1h",
+          "bias": "BEARISH",
+          "structureShift": "CHoCH",
+          "descArabic": "تحول ديناميكي (1H CHoCH): تغير في سلوك السعر واختبار مستويات السيولة اللحظية"
+        },
+        "ltf": {
+          "timeframe": "5m",
+          "bias": "BEARISH",
+          "trigger": "ORDER_BLOCK_RETEST",
+          "entryConfirmation": false,
+          "descArabic": "انتظار اكتمال شمعة التأكيد (5m Validation): السعر يعيد اختبار مستويات السيولة اللحظية"
+        },
+        "cascadeAlignmentScore": 85,
+        "alignmentStatus": "STRONG_CASCADE",
+        "cascadeSummaryArabic": "تتابع فريمات قوي: توافق الفريم الكلي والوسيط مع تأكيد نقطة القناص اللحظية"
+      },
+      "pattern": {
+        "name": "OPEC Production Squeeze Setup",
+        "type": "CONTINUATION",
+        "timeframe": "15m",
+        "confidence": 88,
+        "description": "Crude oil buyers defending $74.20 support with expanding volume."
+      },
+      "confidence": 88,
+      "entryPrice": 88.2,
+      "stopLoss": 87.61,
+      "takeProfit1": 89.26,
+      "takeProfit2": 89.97,
+      "takeProfit3": 90.86,
+      "riskRewardRatio": 1.8,
+      "confluenceScore": 83,
+      "confluenceFactors": [
+        "🌊 تتابع الفريمات: تتابع فريمات قوي: توافق الفريم الكلي والوسيط مع تأكيد نقطة القناص اللحظية (85%)",
+        "Bullish 20/50 EMA Order Alignment",
+        "RSI at 70.1 confirming bullish momentum",
+        "Key Structural Support Confluence Zone",
+        "MACD Momentum Expansion (NONE)",
+        "ATR Volatility Expansion Confirmation"
+      ],
+      "status": "ACTIVE",
+      "createdAt": 1789127587586,
+      "expiresAt": 1789163587586,
+      "currentPrice": 88.2,
+      "pnlPct": 0.2,
+      "newsImpact": {
+        "hasImpact": true,
+        "highestImpact": "HIGH",
+        "closestEventTitle": "EIA Weekly Crude Oil Stocks Change",
+        "closestEventCurrency": "USD",
+        "scheduledTime": 1789145587580,
+        "minutesUntilEvent": 180,
+        "volatilityRisk": "MODERATE",
+        "invalidationWarning": "EIA Weekly Crude Oil Stocks Change scheduled in 180m for USD. Medium volatility anticipated.",
+        "actionableGuidance": "Monitor price action around 14:30 UTC.",
+        "forecast": "-1.800M",
+        "previous": "+0.833M"
+      },
+      "aiAnalysis": {
+        "summary": "High-conviction LONG trade setup on USOIL following OPEC Production Squeeze Setup. Price action demonstrates strong institutional absorption.",
+        "marketBias": "STRONG_BUY",
+        "rationales": [
+          "Multi-timeframe momentum is strictly aligned with the 15m breakout structure.",
+          "Stop-loss placement at 87.61 is safely protected behind institutional liquidity nodes.",
+          "Clean path to Take Profit 1 at 89.26 with low overhead resistance."
+        ],
+        "invalidationTrigger": "H1 Candle closure below 87.61.",
+        "riskRecommendation": "Allocate 1.5% portfolio equity ($0.75 risk on $50 base account) with trailing stop trigger once TP1 is achieved toward 10x target ($500.00).",
+        "keyLevelsNote": "Immediate target at 89.26 (+1.20%), extension target at 89.97.",
+        "expectedMoveTimeframe": "2h - 6h",
+        "fearGreedConfluence": "Greed sentiment supports LONG trend acceleration."
+      },
+      "telegramSent": false,
+      "discordSent": false
+    }
+  ],
+  "postMortems": [],
+  "fearAndGreed": {
+    "value": 64,
+    "sentiment": "Greed",
+    "lastUpdated": 1789134787585,
+    "btcPrice": 77940
+  },
+  "quotaUsage": {
+    "apiRequestsToday": 142,
+    "apiLimitDaily": 800,
+    "geminiCallsToday": 18
+  }
+}

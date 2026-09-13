@@ -1,0 +1,6 @@
+{
+  "name": "Market Radar Bot & Trading Intelligence",
+  "description": "Real-time market scanner, technical pattern confluence detector, Gemini AI trade plan generator, Telegram alerts dispatcher, 24/7 cloud daemon, and real live broker execution engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
