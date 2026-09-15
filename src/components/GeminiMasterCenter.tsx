@@ -31,7 +31,8 @@ import {
   ShieldAlert,
   Cpu,
   Calculator,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Coins
 } from 'lucide-react';
 import { 
   MarketSymbol, 
@@ -44,6 +45,7 @@ import {
 } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { AiNextMoveView } from './AiNextMoveView';
+import { CryptoHubView } from './CryptoHubView';
 
 interface GeminiMasterCenterProps {
   symbols: MarketSymbol[];
@@ -79,7 +81,7 @@ export const GeminiMasterCenter: React.FC<GeminiMasterCenterProps> = ({
   const { t, language } = useLanguage();
 
   // Active Sub-Tab
-  const [activeTab, setActiveTab] = useState<'dual-consensus' | 'trade-manager' | 'next-move'>('dual-consensus');
+  const [activeTab, setActiveTab] = useState<'dual-consensus' | 'trade-manager' | 'next-move' | 'crypto-hub'>('dual-consensus');
 
   // Filters & State
   const [filters, setFilters] = useState<GeminiMasterScreenerFilter>({
@@ -374,6 +376,21 @@ export const GeminiMasterCenter: React.FC<GeminiMasterCenterProps> = ({
           >
             <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
             <span>{language === 'ar' ? 'فاحص الحركة القادمة' : 'AI NEXT MOVE'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('crypto-hub')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold transition whitespace-nowrap border ${
+              activeTab === 'crypto-hub'
+                ? 'bg-[#182033] text-amber-300 border-amber-500/50'
+                : 'bg-[#0e1118] text-slate-400 hover:text-slate-200 border-[#1c2233]'
+            }`}
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>{language === 'ar' ? 'سوق الكريبتو المستقل (Top 100 💎)' : 'CRYPTO MARKET (TOP 100)'}</span>
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-950 text-amber-300 border border-amber-800 font-bold">
+              CRYPTO
+            </span>
           </button>
         </div>
 
@@ -745,6 +762,16 @@ export const GeminiMasterCenter: React.FC<GeminiMasterCenterProps> = ({
           symbols={symbols}
           accountBalance={accountBalance}
         />
+      )}
+
+      {/* TAB 4: CRYPTO MARKET TOP 100 GEMS & SCALPER */}
+      {activeTab === 'crypto-hub' && (
+        <div className="pt-2">
+          <CryptoHubView
+            onOpenChart={onOpenChart}
+            showToast={(msg) => setToastMessage(msg)}
+          />
+        </div>
       )}
     </div>
   );

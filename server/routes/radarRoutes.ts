@@ -1,9 +1,23 @@
 import { Router } from 'express';
 import { radarEngine } from '../radarEngine.js';
 import { whaleOrderbookService } from '../whaleOrderbookService.js';
-import { generateCandlesForSymbol, computeTechnicalIndicators, detectChartPatterns } from '../marketData.js';
+import { generateCandlesForSymbol, getLiveCandlesForSymbol, computeTechnicalIndicators, detectChartPatterns } from '../marketData.js';
 
 export const radarRouter = Router();
+
+// Get Chart Data with Authentic Candles & Technical Indicators
+radarRouter.get('/chart/:symbol/:timeframe', async (req, res) => {
+  try {
+    const symbol = decodeURIComponent(req.params.symbol);
+    const timeframe = req.params.timeframe || '15m';
+    const candles = await getLiveCandlesForSymbol(symbol, timeframe, 80);
+    const indicators = computeTechnicalIndicators(candles);
+    const pattern = detectChartPatterns(symbol, timeframe, candles, indicators);
+    res.json({ success: true, symbol, timeframe, candles, indicators, pattern });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Bot Status
 radarRouter.get('/status', (req, res) => {
@@ -90,10 +104,10 @@ radarRouter.get('/intermarket', (req, res) => {
 });
 
 // Liquidity Heatmap
-radarRouter.get('/liquidity-heatmap', (req, res) => {
+radarRouter.get('/liquidity-heatmap', async (req, res) => {
   try {
     const symbol = (req.query.symbol as string) || 'BTC/USDT';
-    const heatmap = radarEngine.getSymbolLiquidityHeatmap(symbol);
+    const heatmap = await radarEngine.getSymbolLiquidityHeatmap(symbol);
     res.json({ success: true, heatmap });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -101,9 +115,9 @@ radarRouter.get('/liquidity-heatmap', (req, res) => {
 });
 
 // Execute Liquidity Snipe
-radarRouter.post('/liquidity-snipe', (req, res) => {
+radarRouter.post('/liquidity-snipe', async (req, res) => {
   try {
-    const result = radarEngine.executeLiquiditySnipe(req.body);
+    const result = await radarEngine.executeLiquiditySnipe(req.body);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -111,12 +125,12 @@ radarRouter.post('/liquidity-snipe', (req, res) => {
 });
 
 // Whale Orderbook & CVD Flow
-radarRouter.get('/whale-orderbook', (req, res) => {
+radarRouter.get('/whale-orderbook', async (req, res) => {
   try {
     const symbol = (req.query.symbol as string) || 'BTC/USDT';
     const symbols = radarEngine.getSymbols();
     const currentSym = symbols.find(s => s.symbol === symbol) || symbols[0];
-    const analysis = whaleOrderbookService.getWhaleAnalysisForSymbol(
+    const analysis = await whaleOrderbookService.getWhaleAnalysisForSymbol(
       currentSym.symbol, 
       currentSym.price, 
       currentSym.digits || 2

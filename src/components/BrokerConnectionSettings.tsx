@@ -31,6 +31,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { ApiTroubleshootingModal } from './ApiTroubleshootingModal';
+import { UnifiedVaultModal } from './UnifiedVaultModal';
 
 interface BrokerConnectionSettingsProps {
   settings: BotSettings;
@@ -92,6 +93,7 @@ export const BrokerConnectionSettings: React.FC<BrokerConnectionSettingsProps> =
 
   // Troubleshooting modal state
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  const [isVaultOpen, setIsVaultOpen] = useState(false);
 
   // Binance State
   const [binanceKey, setBinanceKey] = useState(brokerCreds.binance?.apiKey || '');
@@ -500,10 +502,13 @@ export const BrokerConnectionSettings: React.FC<BrokerConnectionSettingsProps> =
           </div>
 
           <div className="shrink-0 flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-semibold">
-              <ShieldCheck className="w-4 h-4" />
-              <span>{isAr ? 'حفظ دائم 24/7 ضد انقطاع النت' : '24/7 Persistent Vault'}</span>
-            </div>
+            <button
+              onClick={() => setIsVaultOpen(true)}
+              className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 hover:from-indigo-900 border border-indigo-500/40 text-indigo-300 text-xs font-bold transition flex items-center gap-1.5 shadow-md"
+            >
+              <Lock className="w-4 h-4 text-indigo-400" />
+              <span>{isAr ? 'خزنة الأسرار المشفرة 🔒' : 'Secret Vault 🔒'}</span>
+            </button>
 
             <button
               onClick={() => setShowTroubleshooting(true)}
@@ -1253,6 +1258,14 @@ export const BrokerConnectionSettings: React.FC<BrokerConnectionSettingsProps> =
         onClose={() => setShowTroubleshooting(false)}
         settings={settings}
         language={language}
+      />
+
+      {/* Unified Vault Modal */}
+      <UnifiedVaultModal
+        isOpen={isVaultOpen}
+        onClose={() => setIsVaultOpen(false)}
+        settings={settings}
+        onUpdateSettings={onUpdateSettings}
       />
 
     </div>

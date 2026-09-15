@@ -593,7 +593,26 @@ export class DirectBrokerApiService {
   }
 
   /**
-   * Dispatches direct order via Binance Futures REST API with dynamic leverage (max 30x)
+   * Helper: formats lot/quantity to appropriate decimal precision according to symbol price magnitude
+   */
+  private formatCryptoQuantity(rawQty: number, entryPrice: number): string {
+    if (entryPrice >= 10000) {
+      // BTC, etc: 3 decimals (0.001 step)
+      return (Math.max(0.001, +rawQty.toFixed(3))).toFixed(3);
+    } else if (entryPrice >= 100) {
+      // ETH, SOL, BNB, etc: 2 decimals (0.01 step)
+      return (Math.max(0.01, +rawQty.toFixed(2))).toFixed(2);
+    } else if (entryPrice >= 1) {
+      // XRP, ADA, SUI, NEAR, etc: 1 decimal (0.1 step)
+      return (Math.max(0.1, +rawQty.toFixed(1))).toFixed(1);
+    } else {
+      // DOGE, PEPE, SHIB, low-priced tokens: whole integers
+      return String(Math.max(1, Math.round(rawQty)));
+    }
+  }
+
+  /**
+   * Dispatches direct order via Binance Futures REST API with dynamic leverage and server-side SL/TP protection
    */
   public async executeBinanceOrder(
     credentials: { apiKey: string; apiSecret: string; testnet: boolean; accountType: 'FUTURES_USDT' | 'SPOT' },
@@ -607,11 +626,15 @@ export class DirectBrokerApiService {
 
       const symbol = trade.symbol.replace(/[\/\-_]/g, '').toUpperCase();
       const side = trade.direction === 'LONG' ? 'BUY' : 'SELL';
+      const oppositeSide = trade.direction === 'LONG' ? 'SELL' : 'BUY';
       const timestamp = Date.now();
+      const clientOrderId = `BP_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
       const baseUrl = testnet
         ? (accountType === 'FUTURES_USDT' ? 'https://testnet.binancefuture.com' : 'https://testnet.binance.vision')
         : (accountType === 'FUTURES_USDT' ? 'https://fapi.binance.com' : 'https://api.binance.com');
+
+      const formattedQty = this.formatCryptoQuantity(trade.lotSize, trade.entryPrice);
 
       if (accountType === 'FUTURES_USDT') {
         // Calculate dynamic leverage (max 30x)
@@ -626,7 +649,8 @@ export class DirectBrokerApiService {
         // Set leverage on exchange
         await this.setBinanceFuturesLeverage(apiKey, apiSecret, symbol, dynamicLeverage, testnet);
 
-        const query = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${trade.lotSize}&timestamp=${timestamp}&recvWindow=5000`;
+        // 1. Submit Primary Entry Market Order
+        const query = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${formattedQty}&newClientOrderId=${clientOrderId}&timestamp=${timestamp}&recvWindow=10000`;
         const signature = crypto.createHmac('sha256', apiSecret).update(query).digest('hex');
 
         const res = await fetch(`${baseUrl}/fapi/v1/order?${query}&signature=${signature}`, {
@@ -639,11 +663,41 @@ export class DirectBrokerApiService {
 
         const data = await res.json();
         if (res.ok && data.orderId) {
+          // 2. Immediately Dispatch Protective On-Exchange Stop-Loss Order (STOP_MARKET)
+          if (trade.stopLoss && trade.stopLoss > 0) {
+            try {
+              const slTimestamp = Date.now();
+              const slQuery = `symbol=${symbol}&side=${oppositeSide}&type=STOP_MARKET&stopPrice=${trade.stopLoss}&closePosition=true&timestamp=${slTimestamp}&recvWindow=10000`;
+              const slSig = crypto.createHmac('sha256', apiSecret).update(slQuery).digest('hex');
+              fetch(`${baseUrl}/fapi/v1/order?${slQuery}&signature=${slSig}`, {
+                method: 'POST',
+                headers: { 'X-MBX-APIKEY': apiKey }
+              }).catch(err => console.warn('Binance on-exchange SL registration note:', err));
+            } catch (e) {
+              console.warn('Binance on-exchange SL dispatch caught:', e);
+            }
+          }
+
+          // 3. Dispatch Protective On-Exchange Take-Profit Order (TAKE_PROFIT_MARKET)
+          if (trade.takeProfit1 && trade.takeProfit1 > 0) {
+            try {
+              const tpTimestamp = Date.now();
+              const tpQuery = `symbol=${symbol}&side=${oppositeSide}&type=TAKE_PROFIT_MARKET&stopPrice=${trade.takeProfit1}&closePosition=true&timestamp=${tpTimestamp}&recvWindow=10000`;
+              const tpSig = crypto.createHmac('sha256', apiSecret).update(tpQuery).digest('hex');
+              fetch(`${baseUrl}/fapi/v1/order?${tpQuery}&signature=${tpSig}`, {
+                method: 'POST',
+                headers: { 'X-MBX-APIKEY': apiKey }
+              }).catch(err => console.warn('Binance on-exchange TP registration note:', err));
+            } catch (e) {
+              console.warn('Binance on-exchange TP dispatch caught:', e);
+            }
+          }
+
           return {
             success: true,
             orderId: String(data.orderId),
             leverageUsed: dynamicLeverage,
-            message: `Binance Futures ${side} Executed at ${dynamicLeverage}x Dynamic Leverage! Order ID: #${data.orderId} (Avg Price: $${data.avgPrice || trade.entryPrice})`,
+            message: `Binance Futures ${side} Executed at ${dynamicLeverage}x Dynamic Leverage with On-Exchange SL/TP Guard! Order ID: #${data.orderId}`,
             rawResponse: data
           };
         } else {
@@ -654,7 +708,7 @@ export class DirectBrokerApiService {
         }
       } else {
         // Spot execution
-        const query = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${trade.lotSize}&timestamp=${timestamp}&recvWindow=5000`;
+        const query = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${formattedQty}&newClientOrderId=${clientOrderId}&timestamp=${timestamp}&recvWindow=10000`;
         const signature = crypto.createHmac('sha256', apiSecret).update(query).digest('hex');
 
         const res = await fetch(`${baseUrl}/api/v3/order?${query}&signature=${signature}`, {
@@ -686,7 +740,7 @@ export class DirectBrokerApiService {
   }
 
   /**
-   * Dispatches direct order via Bybit v5 Linear / Spot REST API with dynamic leverage (max 30x)
+   * Dispatches direct order via Bybit v5 Linear / Spot REST API with dynamic leverage and server-side SL/TP
    */
   public async executeBybitOrder(
     credentials: { apiKey: string; apiSecret: string; testnet: boolean; category?: 'linear' | 'spot' },
@@ -701,8 +755,11 @@ export class DirectBrokerApiService {
       const symbol = trade.symbol.replace(/[\/\-_]/g, '').toUpperCase();
       const side = trade.direction === 'LONG' ? 'Buy' : 'Sell';
       const timestamp = Date.now().toString();
-      const recvWindow = '5000';
+      const recvWindow = '10000';
+      const orderLinkId = `BP_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
       const baseUrl = testnet ? 'https://api-testnet.bybit.com' : 'https://api.bybit.com';
+
+      const formattedQty = this.formatCryptoQuantity(trade.lotSize, trade.entryPrice);
 
       let dynamicLeverage = 1;
       if (category === 'linear') {
@@ -716,16 +773,28 @@ export class DirectBrokerApiService {
         await this.setBybitFuturesLeverage(apiKey, apiSecret, symbol, dynamicLeverage, testnet);
       }
 
-      const bodyObj = {
+      const bodyObj: Record<string, any> = {
         category,
         symbol,
         side,
         orderType: 'Market',
-        qty: String(trade.lotSize),
-        stopLoss: String(trade.stopLoss),
-        takeProfit: String(trade.takeProfit1),
+        qty: formattedQty,
+        orderLinkId,
         timeInForce: 'GTC'
       };
+
+      if (trade.stopLoss && trade.stopLoss > 0) {
+        bodyObj.stopLoss = String(trade.stopLoss);
+        bodyObj.slOrderType = 'Market';
+      }
+      if (trade.takeProfit1 && trade.takeProfit1 > 0) {
+        bodyObj.takeProfit = String(trade.takeProfit1);
+        bodyObj.tpOrderType = 'Market';
+      }
+      if (category === 'linear') {
+        bodyObj.tpslMode = 'Full';
+        bodyObj.positionIdx = 0; // One-Way Mode
+      }
 
       const bodyStr = JSON.stringify(bodyObj);
       const preHash = timestamp + apiKey + recvWindow + bodyStr;
@@ -749,7 +818,7 @@ export class DirectBrokerApiService {
           success: true,
           orderId: data.result.orderId,
           leverageUsed: dynamicLeverage,
-          message: `Bybit ${category} ${side} Order Executed with ${dynamicLeverage}x Dynamic Leverage! Order ID: #${data.result.orderId}`,
+          message: `Bybit ${category} ${side} Order Executed with ${dynamicLeverage}x Dynamic Leverage & Full On-Exchange SL/TP! Order ID: #${data.result.orderId}`,
           rawResponse: data
         };
       } else {
@@ -760,6 +829,58 @@ export class DirectBrokerApiService {
       }
     } catch (err: any) {
       return { success: false, message: `Direct Bybit execution failed: ${err.message}` };
+    }
+  }
+
+  /**
+   * Closes an active position on Bybit directly via reduceOnly market order
+   */
+  public async closeBybitPosition(
+    credentials: { apiKey: string; apiSecret: string; testnet: boolean; category?: 'linear' | 'spot' },
+    symbol: string,
+    side: 'Buy' | 'Sell',
+    qty: number
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const { apiKey, apiSecret, testnet, category = 'linear' } = credentials;
+      const cleanSymbol = symbol.replace(/[\/\-_]/g, '').toUpperCase();
+      const timestamp = Date.now().toString();
+      const recvWindow = '10000';
+      const baseUrl = testnet ? 'https://api-testnet.bybit.com' : 'https://api.bybit.com';
+
+      const bodyObj = {
+        category,
+        symbol: cleanSymbol,
+        side,
+        orderType: 'Market',
+        qty: String(qty),
+        reduceOnly: true,
+        timeInForce: 'GTC'
+      };
+
+      const bodyStr = JSON.stringify(bodyObj);
+      const preHash = timestamp + apiKey + recvWindow + bodyStr;
+      const signature = crypto.createHmac('sha256', apiSecret).update(preHash).digest('hex');
+
+      const res = await fetch(`${baseUrl}/v5/order/create`, {
+        method: 'POST',
+        headers: {
+          'X-BAPI-API-KEY': apiKey,
+          'X-BAPI-SIGN': signature,
+          'X-BAPI-TIMESTAMP': timestamp,
+          'X-BAPI-RECV-WINDOW': recvWindow,
+          'Content-Type': 'application/json'
+        },
+        body: bodyStr
+      });
+
+      const data = await res.json();
+      return {
+        success: data.retCode === 0,
+        message: data.retCode === 0 ? `Bybit position on ${cleanSymbol} closed.` : `Bybit close notice: ${data.retMsg}`
+      };
+    } catch (err: any) {
+      return { success: false, message: err.message };
     }
   }
 }

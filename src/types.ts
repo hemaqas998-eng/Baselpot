@@ -206,6 +206,17 @@ export interface TradeSignal {
     expectedMoveTimeframe: string;
     fearGreedConfluence?: string;
   };
+  quantumState?: {
+    probBull: number;
+    probBear: number;
+    probRange: number;
+    entropy: number;
+    quantumCoherence: number;
+    dominantState: string;
+    fractionalKellyLot: number;
+    isExecutionApproved: boolean;
+    auditVerdict: string;
+  };
   telegramSent: boolean;
   telegramMessageId?: string;
   discordSent?: boolean;
@@ -429,9 +440,9 @@ export interface BotSettings {
     brokerAccountName?: string;
   };
   maxDailyLossPct?: number; // 15% Maximum Daily Capital Loss Threshold
-  // --- Direct Broker API Credentials (Non-Webhook Execution) ---
+  // --- Direct Broker API Credentials (Non-Webhook Execution & Automated No-API Brokers) ---
   brokerApiCredentials?: {
-    activeBroker: 'BINANCE' | 'JUSTMARKETS' | 'XM' | 'BYBIT' | 'EXNESS' | 'DERIV' | 'CUSTOM_REST';
+    activeBroker: 'BINANCE' | 'JUSTMARKETS' | 'XM' | 'BYBIT' | 'EXNESS' | 'DERIV' | 'FTMO' | 'FUNDED_NEXT' | 'IC_MARKETS' | 'TICKMILL' | 'PEPPERSTONE' | 'CUSTOM_REST';
     binance?: {
       apiKey: string;
       apiSecret: string;
@@ -445,6 +456,7 @@ export interface BotSettings {
     justmarkets?: {
       mtLogin: string;
       server: string;
+      password?: string;
       apiToken?: string;
       restEndpoint?: string;
       isValidated?: boolean;
@@ -455,8 +467,59 @@ export interface BotSettings {
     xm?: {
       mtLogin: string;
       server: string;
+      password?: string;
       apiToken?: string;
       restEndpoint?: string;
+      isValidated?: boolean;
+      lastValidated?: number;
+      accountBalance?: number;
+      currency?: string;
+    };
+    ftmo?: {
+      login: string;
+      password?: string;
+      server: string;
+      platform: 'MT4' | 'MT5' | 'DXTRADE' | 'CTRADER';
+      isValidated?: boolean;
+      lastValidated?: number;
+      accountBalance?: number;
+      currency?: string;
+    };
+    fundedNext?: {
+      login: string;
+      password?: string;
+      server: string;
+      platform: 'MT4' | 'MT5' | 'CTRADER';
+      isValidated?: boolean;
+      lastValidated?: number;
+      accountBalance?: number;
+      currency?: string;
+    };
+    icMarkets?: {
+      login: string;
+      password?: string;
+      server: string;
+      platform: 'MT4' | 'MT5' | 'CTRADER';
+      isValidated?: boolean;
+      lastValidated?: number;
+      accountBalance?: number;
+      currency?: string;
+    };
+    tickmill?: {
+      login: string;
+      password?: string;
+      server: string;
+      platform: 'MT4' | 'MT5';
+      isValidated?: boolean;
+      lastValidated?: number;
+      accountBalance?: number;
+      currency?: string;
+    };
+    pepperstone?: {
+      login: string;
+      password?: string;
+      server: string;
+      platform: 'MT4' | 'MT5' | 'CTRADER';
       isValidated?: boolean;
       lastValidated?: number;
       accountBalance?: number;
@@ -494,7 +557,7 @@ export interface BotSettings {
 export interface SavedBrokerAccount {
   id: string;
   name: string;
-  brokerType: 'BYBIT' | 'BINANCE' | 'JUSTMARKETS' | 'XM' | 'EXNESS' | 'DERIV' | 'CUSTOM_REST';
+  brokerType: 'BYBIT' | 'BINANCE' | 'JUSTMARKETS' | 'XM' | 'EXNESS' | 'DERIV' | 'FTMO' | 'FUNDED_NEXT' | 'IC_MARKETS' | 'TICKMILL' | 'PEPPERSTONE' | 'CUSTOM_REST';
   createdAt: number;
   lastValidated?: number;
   isValidated?: boolean;
@@ -510,7 +573,10 @@ export interface SavedBrokerAccount {
     category?: 'linear' | 'spot';
     accountType?: 'FUTURES_USDT' | 'SPOT';
     mtLogin?: string;
+    login?: string;
+    password?: string;
     server?: string;
+    platform?: string;
     apiToken?: string;
     restEndpoint?: string;
     appId?: string;

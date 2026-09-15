@@ -593,6 +593,68 @@ export const TelegramCreatorHub: React.FC<TelegramCreatorHubProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Direct Bot Views & Deep Links Grid */}
+              <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-cyan-400" />
+                    {isAr ? 'روابط عرض شاشات البوت الرئيسية (Direct View Links):' : 'Direct Bot View Links:'}
+                  </h4>
+                  <span className="text-[11px] text-slate-400 font-mono">{customAppUrl}</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {[
+                    { id: 'radar', nameAr: 'رادار الإشارات الفورية', nameEn: 'Live Radar Scanner', tab: 'radar', icon: '🎯' },
+                    { id: 'crypto-hub', nameAr: 'سوق الكريبتو Top 100', nameEn: 'Crypto Top 100 Hub', tab: 'crypto-hub', icon: '💎' },
+                    { id: 'live-trades', nameAr: 'محفظة الصفقات والبروكر', nameEn: 'Live Broker Ledger', tab: 'live-trades', icon: '💼' },
+                    { id: 'gemini-master', nameAr: 'الذكاء الثنائي (Gemini + DeepSeek)', nameEn: 'Dual AI Intelligence', tab: 'gemini-master', icon: '🧠' },
+                    { id: 'liquidity-heatmap', nameAr: 'خريطة السيولة وتدفق الأوامر', nameEn: 'Liquidity Heatmap Hub', tab: 'liquidity-heatmap', icon: '🌊' },
+                    { id: 'chart', nameAr: 'الشارت التفاعلي والشموع', nameEn: 'Interactive Chart', tab: 'chart', icon: '📊' },
+                    { id: 'quantitative', nameAr: 'المحرك الكمي وإدارة المخاطر', nameEn: 'Unified Quant Engine', tab: 'quantitative', icon: '📐' },
+                    { id: 'market-hours', nameAr: 'جلسات السوق والإغلاقات', nameEn: 'Market Hours & Sessions', tab: 'market-hours', icon: '⏰' },
+                    { id: 'cloud-autonomy', nameAr: 'السحابة الذاتية 24/7', nameEn: 'Cloud 24/7 Autonomy', tab: 'cloud-autonomy', icon: '☁️' },
+                    { id: 'monitor', nameAr: 'شاشة المراقبة والطرفية', nameEn: 'Live Monitor & Telemetry', tab: 'monitor', icon: '📟' },
+                    { id: 'settings', nameAr: 'إعدادات المنظومة والربط', nameEn: 'Settings & Broker Vault', tab: 'settings', icon: '⚙️' },
+                  ].map((view) => {
+                    const fullLink = `${customAppUrl}?tab=${view.tab}`;
+                    return (
+                      <div 
+                        key={view.id}
+                        className="p-2.5 bg-slate-950/70 border border-slate-800 hover:border-slate-700 rounded-xl flex items-center justify-between gap-2 text-xs transition-all"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-base shrink-0">{view.icon}</span>
+                          <div className="truncate">
+                            <div className="font-semibold text-slate-200 truncate">{isAr ? view.nameAr : view.nameEn}</div>
+                            <div className="text-[10px] text-emerald-400 font-mono truncate">?tab={view.tab}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleCopy(fullLink, `view-${view.id}`)}
+                            title={isAr ? 'نسخ الرابط' : 'Copy Link'}
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-all"
+                          >
+                            {copiedField === `view-${view.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <a
+                            href={fullLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={isAr ? 'فتح العرض' : 'Open View'}
+                            className="p-1.5 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-800/60 text-emerald-400 rounded-lg transition-all"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 

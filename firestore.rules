@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Entity Validators
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+        data.uid is string && data.uid == userId && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() <= 256 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512));
+    }
+
+    function isValidUserSettings(data, userId) {
+      return data.keys().hasAll(['userId', 'updatedAt']) &&
+        data.userId is string && data.userId == userId && data.userId.size() <= 128 &&
+        (!('autoExecuteTrades' in data) || data.autoExecuteTrades is bool) &&
+        (!('brokerWebhookEnabled' in data) || data.brokerWebhookEnabled is bool) &&
+        (!('kellySizingEnabled' in data) || data.kellySizingEnabled is bool) &&
+        (!('accountBalance' in data) || data.accountBalance is number) &&
+        (!('riskPerTradePct' in data) || (data.riskPerTradePct is number && data.riskPerTradePct >= 0 && data.riskPerTradePct <= 100));
+    }
+
+    function isValidUserTrade(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'symbol', 'direction', 'entryPrice', 'status', 'openTime']) &&
+        data.id is string && isValidId(data.id) &&
+        data.userId is string && data.userId == userId && data.userId.size() <= 128 &&
+        data.symbol is string && data.symbol.size() <= 32 &&
+        (data.direction == 'LONG' || data.direction == 'SHORT') &&
+        data.entryPrice is number && data.entryPrice > 0 &&
+        (data.status == 'OPEN' || data.status == 'CLOSED' || data.status == 'CANCELLED') &&
+        data.openTime is number &&
+        (!('stopLoss' in data) || data.stopLoss is number) &&
+        (!('takeProfit1' in data) || data.takeProfit1 is number) &&
+        (!('lotSize' in data) || (data.lotSize is number && data.lotSize > 0)) &&
+        (!('pnl' in data) || data.pnl is number);
+    }
+
+    function isValidUserWatchlistItem(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'symbol', 'addedAt']) &&
+        data.id is string && isValidId(data.id) &&
+        data.userId is string && data.userId == userId && data.userId.size() <= 128 &&
+        data.symbol is string && data.symbol.size() <= 32 &&
+        data.addedAt is number &&
+        (!('assetClass' in data) || (data.assetClass is string && data.assetClass.size() <= 32));
+    }
+
+    function isValidSignalDocument(data) {
+      return data.keys().hasAll(['id', 'symbol', 'direction', 'entryPrice', 'status', 'createdAt']) &&
+        data.id is string && isValidId(data.id) &&
+        data.symbol is string && data.symbol.size() <= 32 &&
+        (data.direction == 'LONG' || data.direction == 'SHORT') &&
+        data.entryPrice is number && data.entryPrice > 0 &&
+        (data.status == 'ACTIVE' || data.status == 'TRIGGERED' || data.status == 'EXPIRED' || data.status == 'CLOSED') &&
+        data.createdAt is number &&
+        (!('confidence' in data) || (data.confidence is number && data.confidence >= 0 && data.confidence <= 100)) &&
+        (!('expiresAt' in data) || data.expiresAt is number);
+    }
+
+    // Collections & Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidUserProfile(incoming(), userId) && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId) || isAdmin();
+
+      match /settings/{settingId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(settingId) && isValidUserSettings(incoming(), userId);
+        allow update: if isOwner(userId) && isValidUserSettings(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /trades/{tradeId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(tradeId) && isValidUserTrade(incoming(), userId);
+        allow update: if isOwner(userId) && isValidUserTrade(incoming(), userId) && incoming().userId == existing().userId && incoming().id == existing().id;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /watchlist/{symbolId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(symbolId) && isValidUserWatchlistItem(incoming(), userId);
+        allow update: if isOwner(userId) && isValidUserWatchlistItem(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    match /signals/{signalId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow get: if isSignedIn();
+      allow list, write: if false;
+    }
+
+    // Connection test rule (required by Firestore skill validation)
+    match /test/{testId} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
+import { RadarScanner } from './components/RadarScanner';
 import { LiveMonitorView } from './components/LiveMonitorView';
 import { InteractiveChart } from './components/InteractiveChart';
 import { LiveBrokerTradesView } from './components/LiveBrokerTradesView';
@@ -17,6 +18,25 @@ import { AdaptivePatternLearningModal } from './components/AdaptivePatternLearni
 import { securityVault } from './services/securityVaultService';
 import { MarketSymbol, TradeSignal, PaperTrade, BotSettings, BotStatus } from './types';
 import { indexedDb } from './services/indexedDbService';
+
+// Canonical Tab Normalization for all bot views and external deep links
+export function normalizeTabId(tabStr: string | null | undefined): string {
+  if (!tabStr) return 'gemini-master';
+  const t = tabStr.toLowerCase().trim();
+  if (t === 'radar' || t === 'signals' || t === 'screener' || t === 'scanner' || t === 'scan') return 'radar';
+  if (t === 'crypto' || t === 'crypto-hub' || t === 'coins' || t === 'cryptos' || t === 'top100') return 'crypto-hub';
+  if (t === 'gemini-master' || t === 'ai' || t === 'gemini' || t === 'next-move' || t === 'dual-ai' || t === 'copilot' || t === 'gemini-insight' || t === 'master') return 'gemini-master';
+  if (t === 'liquidity' || t === 'liquidity-heatmap' || t === 'heatmap' || t === 'orderbook' || t === 'depth') return 'liquidity-heatmap';
+  if (t === 'live-trades' || t === 'paper-trades' || t === 'trades' || t === 'paper' || t === 'portfolio' || t === 'ledger' || t === 'positions' || t === 'broker') return 'live-trades';
+  if (t === 'chart' || t === 'candlestick' || t === 'candles' || t === 'graph') return 'chart';
+  if (t === 'quantitative' || t === 'quant' || t === 'kelly' || t === 'synergy') return 'quantitative';
+  if (t === 'market-hours' || t === 'sessions' || t === 'hours' || t === 'closures' || t === 'holidays') return 'market-hours';
+  if (t === 'cloud-autonomy' || t === 'cloud' || t === 'daemon' || t === 'autonomy' || t === '247') return 'cloud-autonomy';
+  if (t === 'monitor' || t === 'logs' || t === 'terminal' || t === 'telemetry' || t === 'health') return 'monitor';
+  if (t === 'telegram-creator' || t === 'telegram' || t === 'tma' || t === 'bot' || t === 'creator' || t === 'botfather') return 'telegram-creator';
+  if (t === 'settings' || t === 'config' || t === 'setup' || t === 'api' || t === 'preferences') return 'settings';
+  return 'gemini-master';
+}
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => securityVault.isUnlocked());
@@ -75,7 +95,7 @@ export default function App() {
       const signalParam = params.get('signal');
       
       if (tabParam) {
-        setActiveTab(tabParam);
+        setActiveTab(normalizeTabId(tabParam));
       }
       if (symbolParam) {
         setSelectedChartSymbol(symbolParam);
@@ -381,6 +401,7 @@ export default function App() {
         }}
         settings={settings}
         onOpenLearningModal={() => setIsLearningModalOpen(true)}
+        onUpdateSettings={handleUpdateSettings}
       />
 
       {/* Main Content View Switcher */}
@@ -401,8 +422,22 @@ export default function App() {
           />
         )}
 
+        {/* Tab 1: Live Multi-Timeframe Radar Scanner & High-Impact Economic News */}
+        {(activeTab === 'radar' || activeTab === 'scanner' || activeTab === 'signals') && (
+          <RadarScanner
+            signals={signals}
+            symbols={symbols}
+            status={status}
+            onOpenChart={handleOpenChart}
+            onOpenAiAnalysis={handleOpenAiAnalysis}
+            onExecuteTrade={handleExecuteTrade}
+            onSendTelegram={handleSendTelegram}
+            sendingTelegramId={sendingTelegramId}
+          />
+        )}
+
         {/* Tab: Unified Gemini Master AI Screener & Intelligence Center (Supervised Live Radar Embedded) */}
-        {(activeTab === 'gemini-master' || activeTab === 'radar' || activeTab === 'gemini-insight' || activeTab === 'ai-next-move' || activeTab === 'copilot') && (
+        {(activeTab === 'gemini-master' || activeTab === 'gemini-insight' || activeTab === 'ai-next-move' || activeTab === 'copilot' || activeTab === 'dual-ai') && (
           <GeminiMasterCenter
             symbols={symbols}
             signals={signals}

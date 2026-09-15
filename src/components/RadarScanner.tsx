@@ -354,9 +354,9 @@ export const RadarScanner: React.FC<RadarScannerProps> = ({
                       </div>
                     )}
 
-                    {/* Pattern Banner */}
-                    <div className="bg-[#10141f] border border-[#1b2233] rounded p-2.5 mb-2.5">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-200 mb-1">
+                    {/* Pattern & Quantum Brain Banner */}
+                    <div className="bg-[#10141f] border border-[#1b2233] rounded p-2.5 mb-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-200">
                         <span className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
                           <Target className="w-3.5 h-3.5" />
                           {signal.pattern.name}
@@ -365,9 +365,22 @@ export const RadarScanner: React.FC<RadarScannerProps> = ({
                           {signal.confidence}% SCORE
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 line-clamp-2">
+                      <p className="text-xs text-slate-400 line-clamp-1">
                         {signal.pattern.description}
                       </p>
+
+                      {/* Quantum State Vector Display */}
+                      {signal.quantumState && (
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#1b2233]/70 text-[10px] font-mono">
+                          <span className="text-cyan-400 font-bold flex items-center gap-1">
+                            <Zap className="w-3 h-3 text-cyan-400" />
+                            ⚛️ QUANTUM: {signal.quantumState.dominantState} ({(signal.quantumState.probBull * 100).toFixed(0)}%B / {(signal.quantumState.probBear * 100).toFixed(0)}%S)
+                          </span>
+                          <span className="text-slate-300 bg-[#141d2f] px-1.5 py-0.5 rounded border border-cyan-500/30">
+                            KELLY: {signal.quantumState.fractionalKellyLot} LOT
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Trade Levels Matrix - Swiss Precise Grid */}

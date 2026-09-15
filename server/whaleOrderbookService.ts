@@ -1,4 +1,4 @@
-import { MarketSymbol } from '../src/types.js';
+import { fetchBinanceOrderbookDepth, fetchRealCvdData, RealOrderbookSnapshot, RealCvdSnapshot } from './realOrderbookService.js';
 
 export interface OrderbookWall {
   priceLevel: number;
@@ -22,6 +22,8 @@ export interface WhaleOrderbookAnalysis {
   symbol: string;
   currentPrice: number;
   timestamp: number;
+  venue: string;
+  isDataRealAndVerified: boolean;
   bidAskImbalance: {
     bidVolumeTotalUSD: number;
     askVolumeTotalUSD: number;
@@ -48,128 +50,137 @@ export interface WhaleOrderbookAnalysis {
 
 export class WhaleOrderbookService {
   /**
-   * Analyze real-time order book depth and CVD flow
+   * Analyze authentic real-time order book depth and CVD flow directly from exchange feeds
    */
-  public getWhaleAnalysisForSymbol(symbol: string, currentPrice: number, digits = 2): WhaleOrderbookAnalysis {
-    const isCrypto = symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('SOL');
-    const isGold = symbol.includes('XAU') || symbol.includes('GOLD');
-    
-    // Scale volume based on asset
-    const baseUnitVolume = isCrypto ? 25000000 : isGold ? 18000000 : 12000000;
-    
-    // Generate realistic institutional orderbook depth
-    const bidSpreadFactors = [0.002, 0.005, 0.009, 0.015, 0.024];
-    const askSpreadFactors = [0.002, 0.005, 0.009, 0.015, 0.024];
-
-    const whaleWalls: OrderbookWall[] = [];
-    let totalBidUSD = 0;
-    let totalAskUSD = 0;
-
-    // Bids (Buy Walls)
-    bidSpreadFactors.forEach((factor, idx) => {
-      const priceLevel = +(currentPrice * (1 - factor)).toFixed(digits);
-      const isBigWhale = idx === 1 || idx === 3;
-      const volUSD = Math.round(baseUnitVolume * (0.8 + Math.random() * 0.6) * (isBigWhale ? 2.4 : 1.0));
-      totalBidUSD += volUSD;
-
-      if (isBigWhale) {
-        whaleWalls.push({
-          priceLevel,
-          volumeUSD: volUSD,
-          volumeRatio: +(volUSD / baseUnitVolume).toFixed(1),
-          type: 'WHALE_BID_WALL',
-          distancePct: +(factor * 100).toFixed(2),
-          isSpoofingSuspect: Math.random() < 0.15,
-          clusterCount: Math.floor(12 + Math.random() * 20)
-        });
-      }
-    });
-
-    // Asks (Sell Walls)
-    askSpreadFactors.forEach((factor, idx) => {
-      const priceLevel = +(currentPrice * (1 + factor)).toFixed(digits);
-      const isBigWhale = idx === 2;
-      const volUSD = Math.round(baseUnitVolume * (0.7 + Math.random() * 0.5) * (isBigWhale ? 2.1 : 1.0));
-      totalAskUSD += volUSD;
-
-      if (isBigWhale) {
-        whaleWalls.push({
-          priceLevel,
-          volumeUSD: volUSD,
-          volumeRatio: +(volUSD / baseUnitVolume).toFixed(1),
-          type: 'WHALE_ASK_WALL',
-          distancePct: +(factor * 100).toFixed(2),
-          isSpoofingSuspect: Math.random() < 0.12,
-          clusterCount: Math.floor(10 + Math.random() * 16)
-        });
-      }
-    });
-
-    const totalDepth = totalBidUSD + totalAskUSD;
-    const bidRatioPct = +((totalBidUSD / totalDepth) * 100).toFixed(1);
-    const askRatioPct = +((totalAskUSD / totalDepth) * 100).toFixed(1);
-
-    const dominantSide = bidRatioPct >= 54 
-      ? 'BUYERS_DOMINANT' 
-      : askRatioPct >= 54 
-      ? 'SELLERS_DOMINANT' 
-      : 'EQUILIBRIUM';
-
-    const institutionalPressureScore = Math.min(98, Math.round(Math.abs(bidRatioPct - 50) * 3.2 + 55));
-
-    // CVD History (Past 6 intervals)
+  public async getWhaleAnalysisForSymbol(symbol: string, currentPrice: number, digits = 2): Promise<WhaleOrderbookAnalysis> {
+    const depth: RealOrderbookSnapshot = await fetchBinanceOrderbookDepth(symbol, 40);
+    const cvd: RealCvdSnapshot = await fetchRealCvdData(symbol);
     const now = Date.now();
-    const cvdHistory: CvdMetric[] = [];
-    let runningDelta = totalBidUSD * 0.15;
 
-    for (let k = 5; k >= 0; k--) {
-      const stepPrice = +(currentPrice * (1 - (k * 0.0012))).toFixed(digits);
-      runningDelta += (Math.random() - 0.42) * (baseUnitVolume * 0.2);
-      const isAbsorption = bidRatioPct > 55;
-      
-      cvdHistory.push({
-        timestamp: now - (k * 5 * 60 * 1000),
-        price: stepPrice,
-        cumulativeDeltaUSD: +runningDelta.toFixed(0),
-        divergenceType: isAbsorption ? 'BULLISH_ABSORPTION' : 'BEARISH_DISTRIBUTION',
-        deltaIntensity: 'HIGH'
-      });
+    // 1. If OTC asset or no live depth is available, return transparent structured state
+    if (!depth.isAvailable || depth.venue === 'OTC_INTERBANK') {
+      return {
+        symbol,
+        currentPrice,
+        timestamp: now,
+        venue: depth.venue,
+        isDataRealAndVerified: false,
+        bidAskImbalance: {
+          bidVolumeTotalUSD: 0,
+          askVolumeTotalUSD: 0,
+          bidRatioPct: 50,
+          askRatioPct: 50,
+          dominantSide: 'EQUILIBRIUM',
+          institutionalPressureScore: 50
+        },
+        whaleWalls: [],
+        cvdDivergence: {
+          status: 'CONVERGENT',
+          explanationArabic: depth.statusMessageArabic,
+          cvdHistory: []
+        },
+        squeezeRadar: {
+          shortSqueezeProbabilityPct: 50,
+          longSqueezeProbabilityPct: 50,
+          estimatedShortLiquidationUSD: 0,
+          estimatedLongLiquidationUSD: 0,
+          nearestSqueezeTriggerPrice: currentPrice,
+          verdictArabic: depth.statusMessageArabic
+        }
+      };
     }
 
-    const cvdStatus = bidRatioPct > 53 ? 'BULLISH_ABSORPTION' : askRatioPct > 53 ? 'BEARISH_DISTRIBUTION' : 'CONVERGENT';
+    // 2. Identify Actual High-Volume Depth Walls from Real Bids and Asks
+    const avgBidVol = depth.bids.length > 0 ? depth.totalBidUSD / depth.bids.length : 1;
+    const avgAskVol = depth.asks.length > 0 ? depth.totalAskUSD / depth.asks.length : 1;
+
+    const whaleWalls: OrderbookWall[] = [];
+
+    // Filter genuine walls (clusters exceeding 2.2x average depth)
+    for (const b of depth.bids) {
+      const ratio = +(b.totalUSD / avgBidVol).toFixed(1);
+      const distPct = +(((currentPrice - b.price) / currentPrice) * 100).toFixed(2);
+      if (ratio >= 2.0 && b.totalUSD >= 50000) {
+        whaleWalls.push({
+          priceLevel: b.price,
+          volumeUSD: b.totalUSD,
+          volumeRatio: ratio,
+          type: 'WHALE_BID_WALL',
+          distancePct: Math.max(0.01, distPct),
+          isSpoofingSuspect: false,
+          clusterCount: Math.round(b.quantity * 10)
+        });
+      }
+    }
+
+    for (const a of depth.asks) {
+      const ratio = +(a.totalUSD / avgAskVol).toFixed(1);
+      const distPct = +(((a.price - currentPrice) / currentPrice) * 100).toFixed(2);
+      if (ratio >= 2.0 && a.totalUSD >= 50000) {
+        whaleWalls.push({
+          priceLevel: a.price,
+          volumeUSD: a.totalUSD,
+          volumeRatio: ratio,
+          type: 'WHALE_ASK_WALL',
+          distancePct: Math.max(0.01, distPct),
+          isSpoofingSuspect: false,
+          clusterCount: Math.round(a.quantity * 10)
+        });
+      }
+    }
+
+    // Sort walls by volume
+    whaleWalls.sort((a, b) => b.volumeUSD - a.volumeUSD);
+
+    const institutionalPressureScore = Math.min(98, Math.round(Math.abs(depth.bidRatioPct - 50) * 3.2 + 50));
+
+    // 3. CVD History from real trades
+    const cvdHistory: CvdMetric[] = cvd.history.map(h => ({
+      timestamp: h.timestamp,
+      price: h.price,
+      cumulativeDeltaUSD: h.cumulativeDeltaUSD,
+      divergenceType: cvd.divergenceType,
+      deltaIntensity: cvd.deltaIntensity
+    }));
+
+    const cvdStatus = cvd.divergenceType === 'BULLISH_ABSORPTION' 
+      ? 'BULLISH_ABSORPTION' 
+      : cvd.divergenceType === 'BEARISH_DISTRIBUTION' 
+      ? 'BEARISH_DISTRIBUTION' 
+      : 'CONVERGENT';
+
     const explanationArabic = cvdStatus === 'BULLISH_ABSORPTION'
-      ? `امتصاص سيولة شرائي مؤسسي (Bullish Absorption): الحيتان تبتلع عروض البيع عبر جدران شراء ضخمة في دفتر الأوامر دون هبوط السعر`
+      ? `امتصاص شرائي مؤكد من صفقات السوق الحقيقية: صفقات الشراء المباشرة تتفوق على البيع وتدعم تماسك السعر.`
       : cvdStatus === 'BEARISH_DISTRIBUTION'
-      ? `تصريف بيعي خفي (Bearish Distribution): ضغط بيعي متراكم في الدلتا يعيق أي صعود سعري`
-      : `توازن وتكافؤ في تدفق الأوامر الفورية بين المشترين والبائعين`;
+      ? `ضغط بيعي حقيقي: صفقات البيع المباشرة بالسوق تفوق الشراء في شريط الصفقات الفورية.`
+      : `توازن وتكافؤ بين صفقات الشراء والبيع في شريط الصفقات الفورية.`;
 
-    // Squeeze Probability
-    const shortSqueezeProbabilityPct = Math.min(94, Math.round(bidRatioPct * 1.3));
-    const longSqueezeProbabilityPct = Math.min(92, Math.round(askRatioPct * 1.25));
-    const estShortLiqUSD = Math.round(totalAskUSD * 0.85);
-    const estLongLiqUSD = Math.round(totalBidUSD * 0.75);
+    // 4. Squeeze Probabilities derived from actual orderbook imbalance
+    const shortSqueezeProbabilityPct = Math.min(94, Math.round(depth.bidRatioPct * 1.25));
+    const longSqueezeProbabilityPct = Math.min(92, Math.round(depth.askRatioPct * 1.25));
+    const nearestSqueezeTriggerPrice = +(currentPrice * (1 + (depth.bidRatioPct > 52 ? 0.005 : -0.005))).toFixed(digits);
 
-    const nearestSqueezeTriggerPrice = +(currentPrice * (1 + (cvdStatus === 'BULLISH_ABSORPTION' ? 0.006 : -0.006))).toFixed(digits);
-
-    const verdictArabic = shortSqueezeProbabilityPct > 70
-      ? `احتمال مرتفع لانفجار صاعد خاطف (Short Squeeze 🚀) لاقتناص تصفيات البائعين المتراكمة فوق $${nearestSqueezeTriggerPrice}`
-      : longSqueezeProbabilityPct > 70
-      ? `احتمال تصفيات هابطة للمشترين (Long Squeeze 📉) لكسر قيعان السيولة`
-      : `استقرار نسبي في نطاق التداول المؤسسي`;
+    const verdictArabic = depth.bidRatioPct >= 58
+      ? `تفوق واضح لطلبات الشراء في عمق السوق (${depth.bidRatioPct}% Bids) مقابل عروض البيع على منصة ${depth.venue}`
+      : depth.askRatioPct >= 58
+      ? `تفوق لعروض البيع في عمق السوق (${depth.askRatioPct}% Asks) على منصة ${depth.venue}`
+      : `توازن نسبي في دفتر الأوامر على منصة ${depth.venue}`;
 
     return {
       symbol,
       currentPrice,
       timestamp: now,
+      venue: depth.venue,
+      isDataRealAndVerified: true,
       bidAskImbalance: {
-        bidVolumeTotalUSD: totalBidUSD,
-        askVolumeTotalUSD: totalAskUSD,
-        bidRatioPct,
-        askRatioPct,
-        dominantSide,
+        bidVolumeTotalUSD: depth.totalBidUSD,
+        askVolumeTotalUSD: depth.totalAskUSD,
+        bidRatioPct: depth.bidRatioPct,
+        askRatioPct: depth.askRatioPct,
+        dominantSide: depth.dominantSide,
         institutionalPressureScore
       },
-      whaleWalls,
+      whaleWalls: whaleWalls.slice(0, 8),
       cvdDivergence: {
         status: cvdStatus,
         explanationArabic,
@@ -178,8 +189,8 @@ export class WhaleOrderbookService {
       squeezeRadar: {
         shortSqueezeProbabilityPct,
         longSqueezeProbabilityPct,
-        estimatedShortLiquidationUSD: estShortLiqUSD,
-        estimatedLongLiquidationUSD: estLongLiqUSD,
+        estimatedShortLiquidationUSD: depth.totalAskUSD,
+        estimatedLongLiquidationUSD: depth.totalBidUSD,
         nearestSqueezeTriggerPrice,
         verdictArabic
       }

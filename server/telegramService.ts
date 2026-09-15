@@ -288,6 +288,14 @@ export class TelegramService {
     }
     message += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
+    if (signal.quantumState) {
+      message += `⚛️ *محرك البرت الكمي (Albert Quantum Brain v4):*\n`;
+      message += `• *متجه الحالة (Hilbert):* \`|Bull: ${(signal.quantumState.probBull * 100).toFixed(1)}% | Bear: ${(signal.quantumState.probBear * 100).toFixed(1)}% | Range: ${(signal.quantumState.probRange * 100).toFixed(1)}%\`\n`;
+      message += `• *التماسك الكمي:* \`${(signal.quantumState.quantumCoherence * 100).toFixed(1)}%\`  •  *الإنتروبيا:* \`${signal.quantumState.entropy.toFixed(3)}\`\n`;
+      message += `• *التحجيم الكمي (Fractional Kelly):* \`${signal.quantumState.fractionalKellyLot} Lot\`\n`;
+      message += `• *قرار التدقيق:* \`${signal.quantumState.auditVerdict}\`\n\n`;
+    }
+
     if (signal.confluenceFactors && signal.confluenceFactors.length > 0) {
       message += `⚡ *أسباب التوافق الفني (Confluences):*\n`;
       signal.confluenceFactors.forEach(factor => {
@@ -328,8 +336,8 @@ export class TelegramService {
     // Secondary row: Quick actions (Using URL links for 100% channel compatibility)
     const baseApp = appUrl && appUrl.startsWith('http') ? appUrl : 'https://ai.studio/build';
     inlineKeyboard.push([
-      { text: `⚡ Execute Paper Trade`, url: `${baseApp}?tab=paper` },
-      { text: `🧠 AI Intelligence`, url: `${baseApp}?tab=ai` }
+      { text: `⚡ Execute Broker Trade`, url: `${baseApp}?tab=live-trades` },
+      { text: `🧠 AI Intelligence`, url: `${baseApp}?tab=gemini-master` }
     ]);
 
     const tgResult = await this.sendRawMessage(message, 'Markdown', inlineKeyboard);
@@ -429,7 +437,7 @@ export class TelegramService {
     text += `\n🛡️ _تدار الصفقة ذاتياً 24/7 عبر خادم Cloud Daemon مع الوقف المتحرك_`;
 
     const inlineKeyboard = [
-      [{ text: '📱 عرض الصفقات المباشرة', url: appUrl ? `${appUrl}?tab=paper` : 'https://ai.studio/build' }]
+      [{ text: '📱 عرض الصفقات المباشرة', url: appUrl ? `${appUrl}?tab=live-trades` : 'https://ai.studio/build' }]
     ];
     await this.sendRawMessage(text, 'Markdown', inlineKeyboard);
   }
@@ -459,7 +467,7 @@ export class TelegramService {
     text += `⚡ _نظام الإدارة الذاتية لرأس المال وحماية الصفقات_`;
 
     const inlineKeyboard = [
-      [{ text: '📱 متابعة الصفقة المباشرة', url: appUrl ? `${appUrl}?tab=paper` : 'https://ai.studio/build' }]
+      [{ text: '📱 متابعة الصفقة المباشرة', url: appUrl ? `${appUrl}?tab=live-trades` : 'https://ai.studio/build' }]
     ];
     await this.sendRawMessage(text, 'Markdown', inlineKeyboard);
   }

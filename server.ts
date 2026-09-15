@@ -14,6 +14,8 @@ import { tradesRouter, brokerRouter } from './server/routes/tradesRoutes.js';
 import { aiRouter } from './server/routes/aiRoutes.js';
 import { telegramRouter } from './server/routes/telegramRoutes.js';
 import { cryptoRouter, agentsRouter } from './server/routes/cryptoRoutes.js';
+import { quantBrainRouter } from './server/routes/quantBrainRoutes.js';
+import { securityRouter } from './server/routes/securityRoutes.js';
 
 dotenv.config();
 
@@ -43,6 +45,8 @@ async function startServer() {
   app.use('/api/market-hours', radarRouter);
   app.use('/api/crypto', cryptoRouter);
   app.use('/api/agents', agentsRouter);
+  app.use('/api/quant-brain', quantBrainRouter);
+  app.use('/api/security', securityRouter);
 
   // --- Real-Time Interactive Chart Data ---
   app.get('/api/radar/chart/:symbol/:timeframe', async (req, res) => {
@@ -178,7 +182,26 @@ async function startServer() {
   // --- Settings Fallback Routes ---
   app.get('/api/settings', (req, res) => {
     try {
-      res.json({ success: true, settings: radarEngine.getSettings() });
+      const rawSettings = radarEngine.getSettings();
+      // Mask credentials to avoid leaking plain text secrets in client inspector
+      const safeSettings = { ...rawSettings };
+      if (safeSettings.brokerApiCredentials) {
+        const safeCreds: any = { ...safeSettings.brokerApiCredentials };
+        if (safeCreds.bybit?.apiSecret) {
+          safeCreds.bybit = { ...safeCreds.bybit, apiSecret: '••••••••••••••••' };
+        }
+        if (safeCreds.binance?.apiSecret) {
+          safeCreds.binance = { ...safeCreds.binance, apiSecret: '••••••••••••••••' };
+        }
+        if (safeCreds.justmarkets?.apiPassword) {
+          safeCreds.justmarkets = { ...safeCreds.justmarkets, apiPassword: '••••••••••••••••' };
+        }
+        if (safeCreds.xm?.apiPassword) {
+          safeCreds.xm = { ...safeCreds.xm, apiPassword: '••••••••••••••••' };
+        }
+        safeSettings.brokerApiCredentials = safeCreds;
+      }
+      res.json({ success: true, settings: safeSettings });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

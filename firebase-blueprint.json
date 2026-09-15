@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and authentication identity document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "User trading preferences and risk configurations",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "autoExecuteTrades": { "type": "boolean" },
+        "brokerWebhookEnabled": { "type": "boolean" },
+        "kellySizingEnabled": { "type": "boolean" },
+        "accountBalance": { "type": "number" },
+        "riskPerTradePct": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "updatedAt"]
+    },
+    "UserTrade": {
+      "title": "UserTrade",
+      "description": "Trade execution log stored in user subcollection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "symbol": { "type": "string", "maxLength": 32 },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "entryPrice": { "type": "number" },
+        "stopLoss": { "type": "number" },
+        "takeProfit1": { "type": "number" },
+        "lotSize": { "type": "number" },
+        "status": { "type": "string", "enum": ["OPEN", "CLOSED", "CANCELLED"] },
+        "pnl": { "type": "number" },
+        "openTime": { "type": "number" }
+      },
+      "required": ["id", "userId", "symbol", "direction", "entryPrice", "status", "openTime"]
+    },
+    "SignalDocument": {
+      "title": "SignalDocument",
+      "description": "Real-time trading signal and quantum brain confluence",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "symbol": { "type": "string", "maxLength": 32 },
+        "timeframe": { "type": "string", "maxLength": 16 },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "tradeType": { "type": "string", "maxLength": 32 },
+        "entryPrice": { "type": "number" },
+        "stopLoss": { "type": "number" },
+        "takeProfit1": { "type": "number" },
+        "confidence": { "type": "number" },
+        "status": { "type": "string", "enum": ["ACTIVE", "TRIGGERED", "EXPIRED", "CLOSED"] },
+        "createdAt": { "type": "number" },
+        "expiresAt": { "type": "number" }
+      },
+      "required": ["id", "symbol", "direction", "entryPrice", "status", "createdAt"]
+    },
+    "UserWatchlistItem": {
+      "title": "UserWatchlistItem",
+      "description": "User favorite and pinned market asset symbols",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "symbol": { "type": "string", "maxLength": 32 },
+        "assetClass": { "type": "string", "maxLength": 32 },
+        "addedAt": { "type": "number" }
+      },
+      "required": ["id", "userId", "symbol", "addedAt"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Connection test document for health verification",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/test/{testId}": {
+      "schema": "TestConnection",
+      "description": "Connection verification document for testing reachability"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents keyed by Firebase auth UID"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "UserSettings",
+      "description": "Per-user configuration profiles"
+    },
+    "/users/{userId}/trades/{tradeId}": {
+      "schema": "UserTrade",
+      "description": "Per-user executed trades log"
+    },
+    "/users/{userId}/watchlist/{symbolId}": {
+      "schema": "UserWatchlistItem",
+      "description": "Per-user saved watchlist items"
+    },
+    "/signals/{signalId}": {
+      "schema": "SignalDocument",
+      "description": "Public read-only market scanner signals for authenticated platform users"
+    }
+  }
+}

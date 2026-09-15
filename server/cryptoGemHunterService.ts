@@ -681,10 +681,6 @@ export class CryptoGemHunterService {
     const slDist = entryPrice * 0.011;
     const stopLoss = +(isLong ? entryPrice - slDist : entryPrice + slDist).toFixed(4);
 
-    // Optimized High-R:R Take Profit targets: TP1 at +2.2%, TP2 at +4.8% (Targeting 1:2.2 to 1:4.5 R:R)
-    const tp1 = +(isLong ? entryPrice * 1.022 : entryPrice * 0.978).toFixed(4);
-    const tp2 = +(isLong ? entryPrice * 1.048 : entryPrice * 0.952).toFixed(4);
-
     // Dynamic Scalp Margin & Lot Calculation (Supporting Small Accounts $10 - $100+)
     const marginCalc = this.calculateDynamicScalpMargin(symbolObj, entryPrice, stopLoss, isLong);
     const allocatedMarginUSD = marginCalc.allocatedMarginUSD;
@@ -825,6 +821,22 @@ export class CryptoGemHunterService {
     // Track daily realized PnL
     if (trade.pnlUSD < 0) {
       this.dailyRealizedLossUSD += Math.abs(trade.pnlUSD);
+    }
+
+    // Dispatch closing order to exchange to ensure synchronization
+    try {
+      const brokerCreds = radarEngine.getSettings().brokerApiCredentials;
+      if (brokerCreds?.bybit?.apiKey && brokerCreds?.bybit?.apiSecret) {
+        const closeSide = trade.direction === 'LONG' ? 'Sell' : 'Buy';
+        directBrokerApiService.closeBybitPosition(
+          { apiKey: brokerCreds.bybit.apiKey, apiSecret: brokerCreds.bybit.apiSecret, testnet: Boolean(brokerCreds.bybit.testnet) },
+          trade.symbol,
+          closeSide,
+          trade.lotSize
+        ).catch(err => console.warn('Bybit on-exchange close sync note:', err));
+      }
+    } catch (e) {
+      console.warn('Exchange position close synchronization error:', e);
     }
 
     this.closedTrades.unshift(trade);

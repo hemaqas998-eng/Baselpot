@@ -1411,56 +1411,23 @@ export async function getLiveCandlesForSymbol(symbol: string, timeframe: string,
     return yahooCandles;
   }
 
-  // 4. Fallback to cached or synthetic continuous candles grounded in current live spot price
-  return generateCandlesForSymbol(symbol, timeframe, count);
-}
-
-export function generateCandlesForSymbol(symbol: string, timeframe: string, count = 100): Candle[] {
+  // 4. Strict Real-Data Guarantee: If live APIs return nothing, return cached real candles if available, or null/empty array
   if (candlesCache[symbol]?.[timeframe] && candlesCache[symbol][timeframe].length > 0) {
     return candlesCache[symbol][timeframe];
   }
 
-  const symObj = INITIAL_SYMBOLS.find(s => s.symbol === symbol) || INITIAL_SYMBOLS[0];
-  const candles: Candle[] = [];
-  const now = Date.now();
-  
-  let tfMinutes = 15;
-  if (timeframe === '1m') tfMinutes = 1;
-  else if (timeframe === '5m') tfMinutes = 5;
-  else if (timeframe === '15m') tfMinutes = 15;
-  else if (timeframe === '1h') tfMinutes = 60;
-  else if (timeframe === '4h') tfMinutes = 240;
-  else if (timeframe === '1d') tfMinutes = 1440;
+  // No artificial synthetic candle generation
+  return [];
+}
 
-  let currentClose = symObj.price;
-  const volatility = symObj.assetClass === 'crypto' ? 0.008 : symObj.assetClass === 'commodity' ? 0.004 : 0.002;
-
-  for (let i = count - 1; i >= 0; i--) {
-    const timestamp = now - i * tfMinutes * 60 * 1000;
-    const delta = (Math.random() - 0.48) * volatility * currentClose;
-    const open = currentClose;
-    const close = +(open + delta).toFixed(symObj.digits);
-    const wickHigh = Math.random() * volatility * 0.8 * open;
-    const wickLow = Math.random() * volatility * 0.8 * open;
-    const high = +(Math.max(open, close) + wickHigh).toFixed(symObj.digits);
-    const low = +(Math.min(open, close) - wickLow).toFixed(symObj.digits);
-    const volume = Math.floor(Math.random() * 50000 + 10000);
-
-    candles.push({
-      timestamp,
-      open,
-      high,
-      low,
-      close,
-      volume,
-    });
-
-    currentClose = close;
+export function generateCandlesForSymbol(symbol: string, timeframe: string, count = 100): Candle[] {
+  // Always prioritize cached authentic market candles
+  if (candlesCache[symbol]?.[timeframe] && candlesCache[symbol][timeframe].length > 0) {
+    return candlesCache[symbol][timeframe];
   }
 
-  if (!candlesCache[symbol]) candlesCache[symbol] = {};
-  candlesCache[symbol][timeframe] = candles;
-  return candles;
+  // Strict Real Data Rule: return empty array when no verified feed is available
+  return [];
 }
 
 export function updateLatestCandle(symbol: string, timeframe: string, newPrice: number): Candle[] {
@@ -1475,37 +1442,66 @@ export function updateLatestCandle(symbol: string, timeframe: string, newPrice: 
 }
 
 export function calculateEMA(prices: number[], period: number): number[] {
+  if (prices.length === 0) return [];
   const k = 2 / (period + 1);
   const emaArray: number[] = [];
-  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
   
-  for (let i = 0; i < prices.length; i++) {
-    if (i < period - 1) {
-      emaArray.push(prices[i]);
-    } else if (i === period - 1) {
-      emaArray.push(ema);
-    } else {
-      ema = prices[i] * k + ema * (1 - k);
-      emaArray.push(ema);
+  if (prices.length < period) {
+    let runningSum = 0;
+    for (let i = 0; i < prices.length; i++) {
+      runningSum += prices[i];
+      emaArray.push(+(runningSum / (i + 1)).toFixed(6));
     }
+    return emaArray;
+  }
+
+  // Initial SMA for first 'period' elements
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += prices[i];
+    emaArray.push(+(sum / (i + 1)).toFixed(6));
+  }
+  let prevEma = sum / period;
+  emaArray[period - 1] = +prevEma.toFixed(6);
+
+  // Subsequent exponential moving average
+  for (let i = period; i < prices.length; i++) {
+    const currentEma = prices[i] * k + prevEma * (1 - k);
+    emaArray.push(+currentEma.toFixed(6));
+    prevEma = currentEma;
   }
   return emaArray;
 }
 
 export function calculateRSI(closes: number[], period = 14): number {
   if (closes.length < period + 1) return 50;
-  
+
   let gains = 0;
   let losses = 0;
 
-  for (let i = closes.length - period; i < closes.length; i++) {
+  // First period SMA of gains/losses
+  for (let i = 1; i <= period; i++) {
     const diff = closes[i] - closes[i - 1];
     if (diff >= 0) gains += diff;
     else losses += Math.abs(diff);
   }
 
-  if (losses === 0) return 100;
-  const rs = gains / losses;
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+
+  // Wilder's Exponential Smoothing for subsequent periods
+  for (let i = period + 1; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    const currentGain = diff >= 0 ? diff : 0;
+    const currentLoss = diff < 0 ? Math.abs(diff) : 0;
+
+    avgGain = (avgGain * (period - 1) + currentGain) / period;
+    avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
+  }
+
+  if (avgLoss === 0) return 100;
+  if (avgGain === 0) return 0;
+  const rs = avgGain / avgLoss;
   return +(100 - (100 / (1 + rs))).toFixed(2);
 }
 
@@ -1515,12 +1511,12 @@ export function calculateMACD(closes: number[]) {
   const macdLineArr: number[] = [];
   
   for (let i = 0; i < closes.length; i++) {
-    macdLineArr.push(ema12[i] - ema26[i]);
+    macdLineArr.push((ema12[i] || closes[i]) - (ema26[i] || closes[i]));
   }
   
   const signalLineArr = calculateEMA(macdLineArr, 9);
-  const macdLine = macdLineArr[macdLineArr.length - 1];
-  const signalLine = signalLineArr[signalLineArr.length - 1];
+  const macdLine = macdLineArr[macdLineArr.length - 1] || 0;
+  const signalLine = signalLineArr[signalLineArr.length - 1] || 0;
   const histogram = macdLine - signalLine;
 
   let crossover: 'BULLISH' | 'BEARISH' | 'NONE' = 'NONE';
@@ -1540,14 +1536,16 @@ export function calculateMACD(closes: number[]) {
 }
 
 export function calculateBollingerBands(closes: number[], period = 20, multiplier = 2) {
-  const slice = closes.slice(-period);
-  const sma = slice.reduce((a, b) => a + b, 0) / period;
-  const variance = slice.reduce((acc, val) => acc + Math.pow(val - sma, 2), 0) / period;
+  if (closes.length === 0) return { middle: 0, upper: 0, lower: 0, bandwidth: 0 };
+  const effectivePeriod = Math.min(period, closes.length);
+  const slice = closes.slice(-effectivePeriod);
+  const sma = slice.reduce((a, b) => a + b, 0) / effectivePeriod;
+  const variance = slice.reduce((acc, val) => acc + Math.pow(val - sma, 2), 0) / effectivePeriod;
   const stdDev = Math.sqrt(variance);
 
   const upper = sma + stdDev * multiplier;
   const lower = sma - stdDev * multiplier;
-  const bandwidth = ((upper - lower) / sma) * 100;
+  const bandwidth = sma > 0 ? ((upper - lower) / sma) * 100 : 0;
 
   return {
     middle: +sma.toFixed(4),
@@ -1558,26 +1556,117 @@ export function calculateBollingerBands(closes: number[], period = 20, multiplie
 }
 
 export function calculateATR(candles: Candle[], period = 14): number {
-  if (candles.length < period + 1) return 1;
-  let trSum = 0;
-  for (let i = candles.length - period; i < candles.length; i++) {
+  if (candles.length < 2) return candles.length === 1 ? +(candles[0].close * 0.005).toFixed(4) : 0.01;
+  const effectivePeriod = Math.min(period, candles.length - 1);
+  
+  // Calculate True Range for all available bars
+  const trs: number[] = [];
+  for (let i = 1; i < candles.length; i++) {
     const high = candles[i].high;
     const low = candles[i].low;
     const prevClose = candles[i - 1].close;
     const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
-    trSum += tr;
+    trs.push(tr);
   }
-  return +(trSum / period).toFixed(4);
+
+  if (trs.length < effectivePeriod) {
+    const avgTr = trs.reduce((a, b) => a + b, 0) / Math.max(1, trs.length);
+    return +(avgTr).toFixed(4);
+  }
+
+  // Initial SMA of TR
+  let atr = trs.slice(0, effectivePeriod).reduce((a, b) => a + b, 0) / effectivePeriod;
+
+  // Wilder's Smoothing
+  for (let i = effectivePeriod; i < trs.length; i++) {
+    atr = (atr * (effectivePeriod - 1) + trs[i]) / effectivePeriod;
+  }
+
+  return +(Math.max(0.0001, atr)).toFixed(4);
+}
+
+export function calculateADX(candles: Candle[], period = 14): number {
+  if (candles.length < period * 2) {
+    return 22.0; // Default baseline in warmup
+  }
+
+  const trs: number[] = [];
+  const plusDMs: number[] = [];
+  const minusDMs: number[] = [];
+
+  for (let i = 1; i < candles.length; i++) {
+    const high = candles[i].high;
+    const low = candles[i].low;
+    const prevHigh = candles[i - 1].high;
+    const prevLow = candles[i - 1].low;
+    const prevClose = candles[i - 1].close;
+
+    const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+    trs.push(tr);
+
+    const upMove = high - prevHigh;
+    const downMove = prevLow - low;
+
+    if (upMove > downMove && upMove > 0) {
+      plusDMs.push(upMove);
+    } else {
+      plusDMs.push(0);
+    }
+
+    if (downMove > upMove && downMove > 0) {
+      minusDMs.push(downMove);
+    } else {
+      minusDMs.push(0);
+    }
+  }
+
+  // Wilder smoothed sums
+  let smoothTR = trs.slice(0, period).reduce((a, b) => a + b, 0);
+  let smoothPlusDM = plusDMs.slice(0, period).reduce((a, b) => a + b, 0);
+  let smoothMinusDM = minusDMs.slice(0, period).reduce((a, b) => a + b, 0);
+
+  const dxValues: number[] = [];
+
+  for (let i = period; i < trs.length; i++) {
+    smoothTR = smoothTR - (smoothTR / period) + trs[i];
+    smoothPlusDM = smoothPlusDM - (smoothPlusDM / period) + plusDMs[i];
+    smoothMinusDM = smoothMinusDM - (smoothMinusDM / period) + minusDMs[i];
+
+    const plusDI = smoothTR > 0 ? (smoothPlusDM / smoothTR) * 100 : 0;
+    const minusDI = smoothTR > 0 ? (smoothMinusDM / smoothTR) * 100 : 0;
+    const diSum = plusDI + minusDI;
+    const dx = diSum > 0 ? (Math.abs(plusDI - minusDI) / diSum) * 100 : 0;
+    dxValues.push(dx);
+  }
+
+  if (dxValues.length < period) {
+    const avgDx = dxValues.reduce((a, b) => a + b, 0) / Math.max(1, dxValues.length);
+    return +(avgDx).toFixed(1);
+  }
+
+  let adx = dxValues.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dxValues.length; i++) {
+    adx = (adx * (period - 1) + dxValues[i]) / period;
+  }
+
+  return +(Math.max(0, Math.min(100, adx))).toFixed(1);
 }
 
 // Classical Pivot Points Calculation
 export function calculatePivotPoints(candles: Candle[]): PivotPoints {
+  if (!candles || candles.length === 0) {
+    return { pivot: 0, r1: 0, r2: 0, r3: 0, s1: 0, s2: 0, s3: 0 };
+  }
   const last = candles[candles.length - 1];
   const prev = candles.length > 1 ? candles[candles.length - 2] : last;
+  if (!last || !prev) {
+    return { pivot: 0, r1: 0, r2: 0, r3: 0, s1: 0, s2: 0, s3: 0 };
+  }
   
-  const high = Math.max(...candles.slice(-20).map(c => c.high));
-  const low = Math.min(...candles.slice(-20).map(c => c.low));
-  const close = prev.close;
+  const recent = candles.slice(-20);
+  const high = Math.max(...recent.map(c => c?.high ?? 0));
+  const low = Math.min(...recent.map(c => c?.low ?? 0));
+  const close = prev.close ?? last.close ?? 0;
 
   const pivot = (high + low + close) / 3;
   const r1 = 2 * pivot - low;
@@ -1600,9 +1689,9 @@ export function calculatePivotPoints(candles: Candle[]): PivotPoints {
 
 // Volume Profile (POC & Volume at Price Levels)
 export function calculateVolumeProfile(candles: Candle[], binsCount = 14): VolumeProfileBar[] {
-  if (candles.length === 0) return [];
-  const minPrice = Math.min(...candles.map(c => c.low));
-  const maxPrice = Math.max(...candles.map(c => c.high));
+  if (!candles || candles.length === 0) return [];
+  const minPrice = Math.min(...candles.map(c => c?.low ?? 0));
+  const maxPrice = Math.max(...candles.map(c => c?.high ?? 0));
   const step = (maxPrice - minPrice) / binsCount;
 
   if (step <= 0) return [];
@@ -1617,9 +1706,10 @@ export function calculateVolumeProfile(candles: Candle[], binsCount = 14): Volum
   }
 
   candles.forEach(c => {
+    if (!c) return;
     const mid = (c.high + c.low) / 2;
     const binIdx = Math.min(binsCount - 1, Math.max(0, Math.floor((mid - minPrice) / step)));
-    bins[binIdx].volume += c.volume;
+    bins[binIdx].volume += (c.volume || 0);
   });
 
   let maxVol = 0;
@@ -1639,6 +1729,25 @@ export function calculateVolumeProfile(candles: Candle[], binsCount = 14): Volum
 }
 
 export function computeTechnicalIndicators(candles: Candle[]): TechnicalIndicators {
+  if (!candles || candles.length === 0) {
+    return {
+      rsi: 50,
+      rsiSignal: 'NEUTRAL',
+      macd: { macdLine: 0, signalLine: 0, histogram: 0, crossover: 'NONE' },
+      ema20: 0,
+      ema50: 0,
+      ema200: 0,
+      trend: 'NEUTRAL',
+      bollinger: { middle: 0, upper: 0, lower: 0, bandwidth: 0 },
+      atr: 0.01,
+      supportLevels: [],
+      resistanceLevels: [],
+      adx: 20,
+      pivotPoints: { pivot: 0, r1: 0, r2: 0, r3: 0, s1: 0, s2: 0, s3: 0 },
+      volumeProfile: [],
+    };
+  }
+
   const closes = candles.map(c => c.close);
   const rsi = calculateRSI(closes, 14);
   const macd = calculateMACD(closes);
@@ -1646,15 +1755,14 @@ export function computeTechnicalIndicators(candles: Candle[]): TechnicalIndicato
   const ema50Arr = calculateEMA(closes, 50);
   const ema200Arr = calculateEMA(closes, 200);
   
-  const ema20 = ema20Arr[ema20Arr.length - 1];
-  const ema50 = ema50Arr[ema50Arr.length - 1];
-  const ema200 = ema200Arr[ema200Arr.length - 1];
+  const lastClose = closes[closes.length - 1] || 0;
+  const ema20 = ema20Arr.length > 0 ? ema20Arr[ema20Arr.length - 1] : lastClose;
+  const ema50 = ema50Arr.length > 0 ? ema50Arr[ema50Arr.length - 1] : lastClose;
+  const ema200 = ema200Arr.length > 0 ? ema200Arr[ema200Arr.length - 1] : lastClose;
   const bollinger = calculateBollingerBands(closes, 20, 2);
   const atr = calculateATR(candles, 14);
   const pivotPoints = calculatePivotPoints(candles);
   const volumeProfile = calculateVolumeProfile(candles, 14);
-
-  const lastClose = closes[closes.length - 1];
   
   let trend: TechnicalIndicators['trend'] = 'NEUTRAL';
   if (lastClose > ema20 && ema20 > ema50 && ema50 > ema200) trend = 'STRONG_BULLISH';
@@ -1681,21 +1789,22 @@ export function computeTechnicalIndicators(candles: Candle[]): TechnicalIndicato
     rsi,
     rsiSignal: rsi > 70 ? 'OVERBOUGHT' : rsi < 30 ? 'OVERSOLD' : 'NEUTRAL',
     macd,
-    ema20: +ema20.toFixed(4),
-    ema50: +ema50.toFixed(4),
-    ema200: +ema200.toFixed(4),
+    ema20: +(ema20 || 0).toFixed(4),
+    ema50: +(ema50 || 0).toFixed(4),
+    ema200: +(ema200 || 0).toFixed(4),
     trend,
     bollinger,
     atr,
     supportLevels: supportLevels.slice(-3),
     resistanceLevels: resistanceLevels.slice(-3),
-    adx: +(25 + Math.random() * 20).toFixed(1),
+    adx: calculateADX(candles, 14),
     pivotPoints,
     volumeProfile,
   };
 }
 
 export function detectChartPatterns(symbol: string, timeframe: string, candles: Candle[], indicators: TechnicalIndicators): SignalPattern | null {
+  if (!candles || candles.length < 5 || !indicators) return null;
   const closes = candles.map(c => c.close);
   const lastClose = closes[closes.length - 1];
   const lastCandle = candles[candles.length - 1];
@@ -1796,24 +1905,24 @@ export function detectChartPatterns(symbol: string, timeframe: string, candles: 
         confidence: 87,
         description: 'Volatility expansion following tight consolidation bandwidth.'
       });
+    } else if (lastClose < indicators.bollinger.lower) {
+      patterns.push({
+        name: 'Bollinger Band Volatility Breakdown',
+        type: 'BREAKOUT',
+        timeframe,
+        confidence: 86,
+        description: 'Downward volatility expansion breaking below tight Bollinger bands.'
+      });
     }
   }
 
+  // Return highest conviction verified pattern, or null if no genuine pattern exists
   if (patterns.length > 0) {
     return patterns.sort((a, b) => b.confidence - a.confidence)[0];
   }
 
-  // Fallback pattern
-  const isBull = indicators.trend.includes('BULLISH') || indicators.rsi < 42;
-  return {
-    name: isBull ? 'Bullish Order Block Confluence' : 'Bearish Supply Sweep',
-    type: isBull ? 'CONTINUATION' : 'REVERSAL',
-    timeframe,
-    confidence: Math.floor(75 + Math.random() * 18),
-    description: isBull 
-      ? 'Multi-timeframe structural alignment favoring upward order flow expansion.'
-      : 'Structural lower-high confirmed with bearish delta absorption.'
-  };
+  // No forced artificial pattern - returns null to maintain statistical and execution integrity
+  return null;
 }
 
 // =========================================================================
